@@ -57,7 +57,7 @@ a:hover {
 }
 
 .profile-image-placeholder {
-    width: 180px;
+    width: 240px;
     background-color: transparent;
     border: none;
     display: flex;
@@ -73,8 +73,8 @@ a:hover {
 }
 
 .profile-image-placeholder img {
-    width: 180px;
-    height: 240px;
+    width: 240px;
+    height: 300px;
     object-fit: cover;
     display: block; 
     border: 1px solid #ddd;
