@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seunghyun An</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Seunghyun An</h1>
+            <p>
+                Hi, I'm Seunghyun. I am a PhD student at the University of Wisconsin-Madison, 
+                where I am interested in operating systems and host networking.
+            </p>
+            <p>
+                Outside of research, I enjoy playing tennis, indoor bouldering, and skiing 
+                in the winter. I am also passionate about cooking, baking, coffee, and tea.
+                Also, I am an amateur astronomer, who loves to observe the sky and learn about the universe.
+            </p>
+        </div>
+        <div class="profile-image-placeholder">
+            <!-- To add your profile image:
+                 1. Add your image file (e.g., profile.jpg) to this folder.
+                 2. Uncomment the line below and update the src to your filename.
+                 3. Remove the div with id "img-placeholder-text".
+            -->
+            <!-- <img src="profile.jpg" alt="Seunghyun An"> -->
+            <div id="img-placeholder-text">Profile Image</div>
+            <div style="font-size: 0.8rem; margin-top: 5px; text-align: center;">seunghyun at cs.wisc.edu</div>
+        </div>
+    </header>
+
+    <br>
+    <hr>
+
+    <section id="publications">
+        <h2>Publications</h2>
+        
+        <div class="entry">
+            <div class="entry-header">
+                <h3>Server Chiplet Networking <a href="https://dl.acm.org/doi/pdf/10.1145/3772356.3772389">[PDF]</a></h3>
+                <span class="location">HotNets 2025</span>
+            </div>
+            <p class="authors"><strong>Seunghyun An</strong>, Joontaek Oh, Ming Liu</p>
+            <ul>
+                <li>Characterized the chiplet network of two generations of AMD EPYC CPUs</li>
+                <li>Proposed future directions with chiplet networking</li>
+            </ul>
+        </div>
+    </section>
+
+    <section id="education">
+        <h2>Education</h2>
+        
+        <div class="entry">
+            <div class="entry-header">
+                <h3>University of Wisconsin - Madison</h3>
+                <span class="location">Madison, WI, USA</span>
+            </div>
+            <div class="entry-sub">
+                <span class="degree">Ph.D. in Computer Science</span>
+                <span class="date">Aug. 2024 – Present</span>
+            </div>
+            <ul>
+                <li>GPA: 4.0/4.0</li>
+            </ul>
+        </div>
+
+        <div class="entry">
+            <div class="entry-header">
+                <h3>Korea Advanced Institute of Science and Technology (KAIST)</h3>
+                <span class="location">Daejeon, South Korea</span>
+            </div>
+            <div class="entry-sub">
+                <span class="degree">B.S. Double Major in Computer Science and Electrical Engineering</span>
+                <span class="date">Mar. 2018 – Aug. 2024</span>
+            </div>
+            <ul>
+                <li>GPA: 3.88/4.3, Magna Cum Laude</li>
+                <li>Honor Student</li>
+            </ul>
+        </div>
+
+        <div class="entry">
+            <div class="entry-header">
+                <h3>École Polytechnique Fédérale de Lausanne (EPFL)</h3>
+                <span class="location">Lausanne, Switzerland</span>
+            </div>
+            <div class="entry-sub">
+                <span class="degree">Exchange Student in Computer Science</span>
+                <span class="date">Spring 2023</span>
+            </div>
+        </div>
+    </section>
+
+
+    <!-- <section id="research">
+        <h2>Research Experience</h2>
+
+        <div class="entry">
+            <div class="entry-header">
+                <h3>Understanding the Chiplet Network</h3>
+                <span class="location">NetLab, UW-Madison</span>
+            </div>
+            <div class="entry-sub">
+                <span class="advisor">Advised by Prof. Ming Liu</span>
+                <span class="date">Aug. 2024 – Present</span>
+            </div>
+            <ul>
+                <li>Currently examining how chiplet system would affect on end-to-end performance.</li>
+            </ul>
+        </div>
+
+        <div class="entry">
+            <div class="entry-header">
+                <h3>Porting mv-rlu in Rust</h3>
+                <span class="location">RS3Lab, EPFL</span>
+            </div>
+            <div class="entry-sub">
+                <span class="advisor">Advised by Prof. Sanidhya Kashyap</span>
+                <span class="date">Jul. 2023 – Feb. 2024</span>
+            </div>
+            <ul>
+                <li>Ported MV-RLU, synchronization primitive, in Rust.</li>
+            </ul>
+        </div>
+
+        <div class="entry">
+            <div class="entry-header">
+                <h3>File System with SmartSSD</h3>
+                <span class="location">CASYS, KAIST</span>
+            </div>
+            <div class="entry-sub">
+                <span class="advisor">Advised by Prof. Youngjin Kwon</span>
+                <span class="date">Jul. 2023 – Feb. 2024</span>
+            </div>
+            <ul>
+                <li>Examined previous filesystem works which can be compared to.</li>
+                <li>Built kernel RPC Module.</li>
+            </ul>
+        </div>
+
+        <div class="entry">
+            <div class="entry-header">
+                <h3>Implementing Safe File System in Rust</h3>
+                <span class="location">RS3Lab, EPFL</span>
+            </div>
+            <div class="entry-sub">
+                <span class="advisor">Advised by Prof. Sanidhya Kashyap</span>
+                <span class="date">Jan. 2023 – Jul. 2023</span>
+            </div>
+            <ul>
+                <li>Ported the user level file system written in C into Rust.</li>
+            </ul>
+        </div>
+
+        <div class="entry">
+            <div class="entry-header">
+                <h3>Coffer: A Universal Abstraction for Security and Fault Isolation with Rust</h3>
+                <span class="location">CASYS, KAIST</span>
+            </div>
+            <div class="entry-sub">
+                <span class="advisor">Advised by Prof. Youngjin Kwon</span>
+                <span class="date">Jul. 2022 – Dec. 2022</span>
+            </div>
+            <ul>
+                <li>Optimized physical memory allocation/deallocation performance.</li>
+            </ul>
+        </div>
+    </section> -->
+
+    <section id="teaching">
+        <h2>Teaching Experience</h2>
+
+        <div class="entry">
+            <div class="entry-header">
+                <h3>Teaching Assistance at UW-Madison</h3>
+            </div>
+            <ul>
+                <li><strong>CS537 Introduction to Operating System</strong> (Fall 2024, Spring/Fall 2025)</li>
+            </ul>
+        </div>
+
+        <div class="entry">
+            <div class="entry-header">
+                <h3>Teaching Experience at KAIST</h3>
+            </div>
+            <ul>
+                <li><strong>Humanity/Leadership III: Hacking Class</strong> (Fall 2023)</li>
+                <li><strong>Python Tutoring at Daeduk High School</strong> (2022)</li>
+                <li><strong>Freshman Tutoring: Introduction to Programming</strong> (Spring 2022)</li>
+                <li><strong>Freshman Tutoring: General Physics II</strong> (Fall 2021)</li>
+            </ul>
+        </div>
+    </section>
+
+    <section id="honors">
+        <h2>Honors</h2>
+        <ul>
+            <li><strong>Dean’s List in School of Engineering</strong>, Spring 2021</li>
+            <li><strong>Presidential Science Scholarship</strong>, 2018 – 2024</li>
+            <li><strong>Reached the Best Result in 22nd International Astronomy Olympiad (IAO)</strong>, 2017</li>
+        </ul>
+    </section>
+
+    <section id="skills">
+        <h2>Technical Skills</h2>
+        <div class="entry">
+            <strong>Programming Languages:</strong> C/C++, Rust, Python
+        </div>
+        <div class="entry">
+            <strong>Languages:</strong> Korean (Native), English (Proficient)
+        </div>
+    </section>
+
+    <section id="professional">
+        <h2>Professional Experience</h2>
+        
+        <div class="entry">
+            <div class="entry-header">
+                <h3>Military Service</h3>
+                <span class="location">Pyeongtaek, South Korea</span>
+            </div>
+            <div class="entry-sub">
+                <span class="role">Served as KATUSA in Eighth Army Public Affairs</span>
+                <span class="date">2019 – 2020</span>
+            </div>
+            <ul>
+                <li>Awarded Army Commendation Medal(ARCOM) from the U.S. Army</li>
+            </ul>
+        </div>
+    </section>
+</body>
+</html>
+
