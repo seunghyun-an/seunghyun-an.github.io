@@ -1,0 +1,1815 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Graph Explorer</title>
+<script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242836;
+    --border: #2e3348;
+    --text: #e4e6f0;
+    --text-dim: #8b8fa8;
+    --accent: #6c8cff;
+    --accent-hover: #8da6ff;
+    --accent-bg: rgba(108,140,255,0.12);
+    --danger: #ff6b6b;
+    --success: #51cf66;
+    --radius: 8px;
+    --shadow: 0 2px 12px rgba(0,0,0,0.3);
+    --chart-bg: #0f1117;
+    --chart-grid: #2e3348;
+    --chart-font: #e4e6f0;
+    --chart-legend-bg: rgba(26,29,39,0.8);
+  }
+  :root.light {
+    --bg: #f5f6fa;
+    --surface: #ffffff;
+    --surface2: #eef0f6;
+    --border: #d8dbe6;
+    --text: #1a1d27;
+    --text-dim: #6b7085;
+    --accent: #4a6cf7;
+    --accent-hover: #3855d4;
+    --accent-bg: rgba(74,108,247,0.1);
+    --danger: #e03e3e;
+    --success: #2b9348;
+    --shadow: 0 2px 12px rgba(0,0,0,0.08);
+    --chart-bg: #ffffff;
+    --chart-grid: #e0e3ed;
+    --chart-font: #1a1d27;
+    --chart-legend-bg: rgba(255,255,255,0.9);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .header h1 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header h1 span { color: var(--accent); }
+
+  .header-actions { display: flex; gap: 8px; align-items: center; }
+
+  /* Buttons */
+  .btn {
+    padding: 7px 16px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: inherit;
+    white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--accent); background: var(--accent-bg); }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+  .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+  /* Layout */
+  .main {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 300px;
+    min-width: 180px;
+    max-width: 60vw;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+  .sidebar-resize-handle {
+    position: absolute;
+    top: 0;
+    right: -3px;
+    width: 6px;
+    height: 100%;
+    cursor: col-resize;
+    z-index: 10;
+    transition: background 0.15s;
+  }
+  .sidebar-resize-handle:hover,
+  .sidebar-resize-handle.dragging {
+    background: var(--accent);
+  }
+
+  .sidebar-section {
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-section.expandable { flex-shrink: 0; }
+  .sidebar-section.y-axis-section { flex: 1; min-height: 0; }
+
+  .sidebar-section-header {
+    padding: 10px 16px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .sidebar-section-header:hover { color: var(--text); }
+  .sidebar-section-header .chevron {
+    transition: transform 0.2s;
+    font-size: 10px;
+  }
+  .sidebar-section-header .chevron.collapsed { transform: rotate(-90deg); }
+
+  .sidebar-section-body {
+    padding: 8px 16px 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .sidebar-section-body.collapsed-body { display: none; }
+
+  .y-axis-section .sidebar-section-body {
+    overflow: hidden;
+    flex: 1;
+    min-height: 0;
+  }
+  #yChecklist {
+    overflow-y: auto;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Form controls */
+  select, input[type="text"], input[type="number"] {
+    width: 100%;
+    padding: 7px 10px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  select:focus, input:focus { border-color: var(--accent); }
+  select { cursor: pointer; }
+
+  label.form-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+    display: block;
+  }
+
+  .form-group { margin-bottom: 10px; }
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  /* Checkbox list */
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.12s;
+    font-size: 13px;
+  }
+  .check-item:hover { background: var(--surface2); }
+  .check-item input[type="checkbox"] { display: none; }
+  .check-mark {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .check-item input:checked + .check-mark {
+    border-color: var(--accent);
+    background: var(--accent);
+  }
+  .check-item input:checked + .check-mark::after {
+    content: '✓';
+    color: #fff;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .check-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex: 1;
+  }
+  .copy-btn {
+    flex-shrink: 0;
+    font-size: 11px;
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    padding: 2px;
+    border-radius: 3px;
+  }
+  .check-item:hover .copy-btn { opacity: 0.6; }
+  .copy-btn:hover { opacity: 1 !important; }
+
+  /* Toggle switch */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .toggle-row span { font-size: 13px; }
+  .toggle {
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    background: var(--border);
+    cursor: pointer;
+    position: relative;
+    transition: background 0.2s;
+  }
+  .toggle.active { background: var(--accent); }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s;
+  }
+  .toggle.active::after { transform: translateX(16px); }
+
+  /* Y-axis search */
+  .y-search {
+    position: relative;
+    margin-bottom: 8px;
+    flex-shrink: 0;
+  }
+  .y-search input {
+    padding-left: 30px;
+  }
+  .y-search::before {
+    content: '🔍';
+    position: absolute;
+    left: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    pointer-events: none;
+  }
+  .y-select-actions {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 6px;
+    flex-shrink: 0;
+  }
+
+  /* Chart area */
+  .chart-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  #chart {
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Formula bar */
+  .formula-bar {
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 10px 16px;
+    flex-shrink: 0;
+  }
+  .formula-bar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .formula-bar-header span {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-dim);
+  }
+  .formula-input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .formula-input-row input {
+    flex: 1;
+  }
+  .formula-input-row input:first-child {
+    max-width: 140px;
+  }
+  .formula-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+  .formula-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    background: var(--accent-bg);
+    border: 1px solid rgba(108,140,255,0.25);
+    border-radius: 16px;
+    font-size: 12px;
+    color: var(--accent);
+  }
+  .formula-tag .remove {
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1;
+  }
+  .formula-tag .remove:hover { color: var(--danger); }
+
+  /* Filter section */
+  .filter-input-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .filter-input-row input { flex: 1; font-family: 'Consolas', 'Monaco', 'Courier New', monospace; font-size: 12px; }
+  .filter-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 4px;
+  }
+  .filter-tag {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 10px;
+    background: rgba(81,207,102,0.08);
+    border: 1px solid rgba(81,207,102,0.2);
+    border-radius: 6px;
+    font-size: 12px;
+    font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+    color: var(--success);
+  }
+  .filter-tag.error {
+    background: rgba(255,107,107,0.08);
+    border-color: rgba(255,107,107,0.2);
+    color: var(--danger);
+  }
+  .filter-tag .filter-expr { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .filter-tag .filter-toggle {
+    width: 28px; height: 16px; border-radius: 8px; background: var(--success);
+    cursor: pointer; position: relative; transition: background 0.2s; flex-shrink: 0;
+  }
+  .filter-tag .filter-toggle.off { background: var(--border); }
+  .filter-tag .filter-toggle::after {
+    content: ''; position: absolute; width: 12px; height: 12px; border-radius: 50%;
+    background: #fff; top: 2px; left: 2px; transition: transform 0.2s;
+  }
+  .filter-tag .filter-toggle.off::after { transform: translateX(0); }
+  .filter-tag .filter-toggle:not(.off)::after { transform: translateX(12px); }
+  .filter-tag .remove {
+    cursor: pointer; font-size: 14px; color: var(--text-dim); line-height: 1; flex-shrink: 0;
+  }
+  .filter-tag .remove:hover { color: var(--danger); }
+  .filter-count {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 6px;
+  }
+  .filter-count strong { color: var(--success); font-weight: 600; }
+
+  /* Dropzone overlay */
+  .dropzone-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+  }
+  .dropzone-overlay.active { display: flex; }
+  .dropzone-box {
+    border: 3px dashed var(--accent);
+    border-radius: 16px;
+    padding: 60px 80px;
+    text-align: center;
+  }
+  .dropzone-box p { font-size: 20px; font-weight: 600; margin-top: 12px; }
+  .dropzone-box span { font-size: 14px; color: var(--text-dim); }
+
+  /* Empty state */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-dim);
+    gap: 12px;
+  }
+  .empty-state .icon { font-size: 48px; opacity: 0.4; }
+  .empty-state p { font-size: 15px; }
+  .empty-state small { font-size: 12px; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  /* Status bar */
+  .status-bar {
+    padding: 4px 16px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    gap: 20px;
+    flex-shrink: 0;
+  }
+
+  /* Tooltip */
+  .tooltip-help {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    cursor: help;
+    color: var(--text-dim);
+    font-size: 13px;
+    margin-left: 4px;
+  }
+  .tooltip-help:hover::after {
+    content: attr(data-tip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 6px 10px;
+    background: #333;
+    color: #fff;
+    border-radius: 6px;
+    font-size: 11px;
+    white-space: pre-line;
+    width: max-content;
+    max-width: 280px;
+    z-index: 100;
+    pointer-events: none;
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .main { flex-direction: column; }
+    .sidebar { width: 100%; min-width: unset; max-height: 45vh; border-right: none; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<!-- Drop overlay -->
+<div class="dropzone-overlay" id="dropOverlay">
+  <div class="dropzone-box">
+    <div style="font-size:48px">📂</div>
+    <p>여기에 파일을 놓으세요</p>
+    <span>CSV, TSV 파일 지원</span>
+  </div>
+</div>
+
+<!-- Header -->
+<div class="header">
+  <h1><a href="index.html" style="color:var(--text-dim);text-decoration:none;font-size:14px;margin-right:12px" title="Back to main site">← Home</a>📊 <span>Graph</span> Explorer</h1>
+  <div class="header-actions">
+    <label class="btn" id="fileBtn">
+      📁 파일 열기
+      <input type="file" accept=".csv,.tsv,.txt" id="fileInput" style="display:none">
+    </label>
+    <button class="btn" id="savePng" disabled>📷 PNG 저장</button>
+    <button class="btn" onclick="saveSession()" title="현재 설정+데이터를 JSON으로 저장">💾 저장</button>
+    <label class="btn" title="저장된 JSON 세션 불러오기">
+      📂 불러오기
+      <input type="file" accept=".json" id="loadSessionInput" style="display:none" onchange="loadSession(this)">
+    </label>
+    <button class="btn" id="themeToggle" onclick="toggleTheme()" title="라이트/다크 모드 전환">🌙</button>
+  </div>
+</div>
+
+<!-- Main layout -->
+<div class="main">
+  <!-- Sidebar -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-resize-handle" id="sidebarResizeHandle"></div>
+
+    <!-- X axis -->
+    <div class="sidebar-section expandable">
+      <div class="sidebar-section-header" onclick="toggleSection(this)">
+        X축 선택 <span class="chevron">▼</span>
+      </div>
+      <div class="sidebar-section-body">
+        <select id="xSelect" disabled>
+          <option value="">파일을 먼저 로드하세요</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Data Filter -->
+    <div class="sidebar-section expandable">
+      <div class="sidebar-section-header" onclick="toggleSection(this)">
+        데이터 필터
+        <span class="tooltip-help" data-tip="조건식으로 행을 필터링합니다.&#10;예: step_id > 100 && step_id < 200&#10;연산자: >, <, >=, <=, ==, !=, &&, ||&#10;함수: abs, sqrt, log 등 사용 가능">ⓘ</span>
+        <span class="chevron">▼</span>
+      </div>
+      <div class="sidebar-section-body">
+        <div class="filter-input-row">
+          <input type="text" id="filterExpr" placeholder="예: step_id > 100 && step_id < 200" onkeydown="if(event.key==='Enter') addFilter()">
+          <button class="btn btn-sm btn-primary" onclick="addFilter()">추가</button>
+        </div>
+        <div class="filter-list" id="filterList"></div>
+        <div class="filter-count" id="filterCount"></div>
+      </div>
+    </div>
+
+    <!-- Y axis -->
+    <div class="sidebar-section y-axis-section">
+      <div class="sidebar-section-header" onclick="toggleSection(this)">
+        Y축 선택 <span class="chevron">▼</span>
+      </div>
+      <div class="sidebar-section-body">
+        <div class="y-search">
+          <input type="text" id="ySearch" placeholder="컬럼 검색..." disabled>
+        </div>
+        <div class="y-select-actions">
+          <button class="btn btn-sm" id="selectAll" disabled>전체 선택</button>
+          <button class="btn btn-sm" id="deselectAll" disabled>전체 해제</button>
+        </div>
+        <div id="yChecklist"></div>
+      </div>
+    </div>
+
+    <!-- Axis settings -->
+    <div class="sidebar-section expandable">
+      <div class="sidebar-section-header" onclick="toggleSection(this)">
+        축 설정 <span class="chevron collapsed">▼</span>
+      </div>
+      <div class="sidebar-section-body collapsed-body">
+        <div class="form-row" style="margin-bottom: 10px">
+          <div>
+            <label class="form-label">X축 라벨</label>
+            <input type="text" id="xLabel" placeholder="auto (컬럼명)">
+          </div>
+          <div>
+            <label class="form-label">Y축 라벨</label>
+            <input type="text" id="yLabel" placeholder="auto">
+          </div>
+        </div>
+        <div class="toggle-row">
+          <span>X축 Log 스케일</span>
+          <div class="toggle" id="xLog" onclick="toggleSwitch(this)"></div>
+        </div>
+        <div class="toggle-row">
+          <span>Y축 Log 스케일</span>
+          <div class="toggle" id="yLog" onclick="toggleSwitch(this)"></div>
+        </div>
+        <div class="form-row" style="margin-bottom: 10px">
+          <div>
+            <label class="form-label">X 최소</label>
+            <input type="text" id="xMin" placeholder="auto">
+          </div>
+          <div>
+            <label class="form-label">X 최대</label>
+            <input type="text" id="xMax" placeholder="auto">
+          </div>
+        </div>
+        <div class="form-row" style="margin-bottom: 10px">
+          <div>
+            <label class="form-label">Y 최소</label>
+            <input type="text" id="yMin" placeholder="auto">
+          </div>
+          <div>
+            <label class="form-label">Y 최대</label>
+            <input type="text" id="yMax" placeholder="auto">
+          </div>
+        </div>
+        <div class="form-row" style="margin-bottom: 10px">
+          <div>
+            <label class="form-label">X축 눈금 주기</label>
+            <input type="text" id="xTick" placeholder="auto">
+          </div>
+          <div>
+            <label class="form-label">Y축 눈금 주기</label>
+            <input type="text" id="yTick" placeholder="auto">
+          </div>
+        </div>
+        <button class="btn btn-sm" style="width:100%" onclick="applyAxisSettings()">적용</button>
+      </div>
+    </div>
+
+    <!-- Data Split -->
+    <div class="sidebar-section expandable">
+      <div class="sidebar-section-header" onclick="toggleSection(this)">
+        데이터 분할
+        <span class="tooltip-help" data-tip="주기: 숫자 컬럼을 주기로 잘라 겹쳐 비교&#10;그룹: 텍스트 컬럼의 고유값별로 분할">ⓘ</span>
+        <span class="chevron collapsed">▼</span>
+      </div>
+      <div class="sidebar-section-body collapsed-body">
+        <div class="toggle-row">
+          <span>분할 활성화</span>
+          <div class="toggle" id="splitEnabled" onclick="toggleSwitch(this)"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">분할 방식</label>
+          <select id="splitMode" onchange="onSplitModeChange()">
+            <option value="period">주기 (숫자)</option>
+            <option value="group">그룹 (텍스트)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">기준 컬럼</label>
+          <select id="splitCol" disabled>
+            <option value="">X축과 동일</option>
+          </select>
+        </div>
+        <div id="splitPeriodOpts">
+          <div class="form-group">
+            <label class="form-label">주기 (구간 크기)</label>
+            <input type="number" id="splitPeriod" placeholder="예: 100" min="1" step="any">
+          </div>
+          <div class="form-group">
+            <label class="form-label">시작 오프셋</label>
+            <input type="number" id="splitOffset" value="0" step="any">
+          </div>
+        </div>
+        <button class="btn btn-sm" style="width:100%" onclick="updateChart()">적용</button>
+      </div>
+    </div>
+
+    <!-- Chart Options -->
+    <div class="sidebar-section expandable">
+      <div class="sidebar-section-header" onclick="toggleSection(this)">
+        차트 옵션 <span class="chevron collapsed">▼</span>
+      </div>
+      <div class="sidebar-section-body collapsed-body">
+        <div class="form-group">
+          <label class="form-label">차트 유형</label>
+          <select id="chartType">
+            <option value="scatter">Scatter (점)</option>
+            <option value="lines" selected>Line (선)</option>
+            <option value="lines+markers">Line + Markers</option>
+            <option value="bar">Bar (막대)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">선 두께</label>
+          <input type="number" id="lineWidth" value="2" min="0.5" max="10" step="0.5">
+        </div>
+        <div class="form-group">
+          <label class="form-label">마커 크기</label>
+          <input type="number" id="markerSize" value="4" min="1" max="20" step="1">
+        </div>
+        <button class="btn btn-sm" style="width:100%" onclick="updateChart()">적용</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart area -->
+  <div class="chart-area">
+    <div id="chart">
+      <div class="empty-state" id="emptyState">
+        <div class="icon">📈</div>
+        <p>CSV 또는 TSV 파일을 열어 시작하세요</p>
+        <small>드래그 앤 드롭 또는 상단 "파일 열기" 버튼 클릭</small>
+      </div>
+    </div>
+
+    <!-- Formula bar -->
+    <div class="formula-bar">
+      <div class="formula-bar-header">
+        <span>
+          파생 데이터 수식
+          <span class="tooltip-help" data-tip="수식에서 컬럼명을 사용하세요.&#10;예: col_A * 2 + col_B&#10;&#10;수학: sin, cos, sqrt, abs, log, pow, ...&#10;&#10;컬럼 함수:&#10;  loess(col, 0.25) — LOESS 평활화&#10;  movavg(col, 10) — 이동평균&#10;  ema(col, 0.1) — 지수이동평균&#10;  diff(col) — 차분 (전행 대비 변화)&#10;  cumsum(col) — 누적합">ⓘ</span>
+        </span>
+      </div>
+      <div class="formula-input-row">
+        <input type="text" id="formulaName" placeholder="새 컬럼명">
+        <input type="text" id="formulaExpr" placeholder="수식: col_A * 2 + sin(col_B)">
+        <button class="btn btn-sm btn-primary" id="addFormulaBtn" onclick="addFormula()">추가</button>
+      </div>
+      <div class="formula-list" id="formulaList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Status bar -->
+<div class="status-bar" id="statusBar">
+  <span id="statusFile">파일 없음</span>
+  <span id="statusRows">–</span>
+  <span id="statusCols">–</span>
+</div>
+
+<script>
+// ========== STATE ==========
+let rawData = {};        // { colName: [values...] }
+let columns = [];
+let fileName = '';
+let derivedCols = [];    // [{ name, expr }]
+let filters = [];        // [{ expr, enabled, id }]
+let filterIdCounter = 0;
+let filteredIndices = null; // null = no filter, array of row indices that pass
+const COLORS = [
+  '#6c8cff','#ff6b6b','#51cf66','#ffd43b','#cc5de8',
+  '#20c997','#ff922b','#66d9e8','#f06595','#a9e34b',
+  '#d0bfff','#ffa94d','#63e6be','#e599f7','#74c0fc',
+  '#ffe066','#8ce99a','#ffc9c9','#b2f2bb','#d8f5a2',
+];
+
+// ========== FILE HANDLING ==========
+const fileInput = document.getElementById('fileInput');
+const dropOverlay = document.getElementById('dropOverlay');
+
+fileInput.addEventListener('change', e => {
+  if (e.target.files.length) loadFile(e.target.files[0]);
+});
+
+// Drag & Drop
+let dragCounter = 0;
+document.addEventListener('dragenter', e => {
+  e.preventDefault();
+  dragCounter++;
+  dropOverlay.classList.add('active');
+});
+document.addEventListener('dragleave', e => {
+  e.preventDefault();
+  dragCounter--;
+  if (dragCounter <= 0) { dragCounter = 0; dropOverlay.classList.remove('active'); }
+});
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => {
+  e.preventDefault();
+  dragCounter = 0;
+  dropOverlay.classList.remove('active');
+  if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
+});
+
+function loadFile(file) {
+  fileName = file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const text = e.target.result;
+    parseData(text, file.name);
+  };
+  reader.readAsText(file);
+}
+
+function detectDelimiter(text) {
+  const firstLine = text.split('\n')[0];
+  const tabs = (firstLine.match(/\t/g) || []).length;
+  const commas = (firstLine.match(/,/g) || []).length;
+  return tabs > commas ? '\t' : ',';
+}
+
+function parseData(text, fname) {
+  const delimiter = detectDelimiter(text);
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return alert('데이터가 부족합니다 (헤더 + 최소 1행 필요)');
+
+  const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
+  columns = headers;
+  rawData = {};
+  headers.forEach(h => rawData[h] = []);
+
+  for (let i = 1; i < lines.length; i++) {
+    if (!lines[i].trim()) continue;
+    const vals = lines[i].split(delimiter);
+    headers.forEach((h, j) => {
+      const v = (vals[j] || '').trim().replace(/^"|"$/g, '');
+      const num = Number(v);
+      rawData[h].push(v === '' ? null : isNaN(num) ? v : num);
+    });
+  }
+
+  // Recalculate derived columns
+  recalcDerived();
+
+  // Update UI
+  populateControls();
+  document.getElementById('statusFile').textContent = `📄 ${fname}`;
+  const rowCount = rawData[headers[0]]?.length || 0;
+  document.getElementById('statusRows').textContent = `${rowCount.toLocaleString()} 행`;
+  document.getElementById('statusCols').textContent = `${columns.length} 컬럼`;
+  document.getElementById('savePng').disabled = false;
+  document.getElementById('emptyState')?.remove();
+
+  // Re-apply existing filters to new data
+  applyFilters();
+  renderFilterList();
+}
+
+// ========== CONTROLS ==========
+function populateControls() {
+  const allCols = getAllColumns();
+
+  // X select (preserve previous selection)
+  const xSel = document.getElementById('xSelect');
+  const prevX = xSel.value;
+  xSel.disabled = false;
+  xSel.innerHTML = allCols.map(c => `<option value="${esc(c)}">${esc(c)}${derivedCols.some(d => d.name === c) ? ' ✦' : ''}</option>`).join('');
+  if (allCols.includes(prevX)) xSel.value = prevX;
+  xSel.onchange = () => updateChart();
+
+  // Split column select (preserve previous selection)
+  const splitSel = document.getElementById('splitCol');
+  const prevSplit = splitSel.value;
+  splitSel.disabled = false;
+  splitSel.innerHTML = '<option value="">X축과 동일</option>' +
+    allCols.map(c => `<option value="${esc(c)}">${esc(c)}${derivedCols.some(d => d.name === c) ? ' ✦' : ''}</option>`).join('');
+  if (prevSplit && allCols.includes(prevSplit)) splitSel.value = prevSplit;
+
+  // Y checklist
+  const yBox = document.getElementById('yChecklist');
+  yBox.innerHTML = allCols.map((c, i) => {
+    const color = COLORS[i % COLORS.length];
+    const isDerived = derivedCols.some(d => d.name === c);
+    return `<label class="check-item" data-col="${esc(c)}" title="${esc(c)}">
+      <input type="checkbox" value="${esc(c)}" onchange="updateChart()">
+      <span class="check-mark"></span>
+      <span class="color-dot" style="background:${color}"></span>
+      <span class="check-label">${esc(c)}${isDerived ? ' ✦' : ''}</span>
+      <span class="copy-btn" onclick="event.preventDefault();copyColName('${c.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')" title="컬럼명 복사">📋</span>
+    </label>`;
+  }).join('');
+
+  // Enable search
+  const ySearch = document.getElementById('ySearch');
+  ySearch.disabled = false;
+  ySearch.oninput = () => {
+    const q = ySearch.value.toLowerCase();
+    yBox.querySelectorAll('.check-item').forEach(el => {
+      el.style.display = el.dataset.col.toLowerCase().includes(q) ? '' : 'none';
+    });
+  };
+
+  // Select all / deselect all
+  document.getElementById('selectAll').disabled = false;
+  document.getElementById('deselectAll').disabled = false;
+  document.getElementById('selectAll').onclick = () => {
+    yBox.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      if (cb.closest('.check-item').style.display !== 'none') cb.checked = true;
+    });
+    updateChart();
+  };
+  document.getElementById('deselectAll').onclick = () => {
+    yBox.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+    updateChart();
+  };
+}
+
+function getAllColumns() {
+  const derivedNames = derivedCols.map(d => d.name);
+  return [...columns, ...derivedNames];
+}
+
+function getColData(name) {
+  if (rawData[name]) return rawData[name];
+  const dc = derivedCols.find(d => d.name === name);
+  if (dc) return dc.data;
+  return [];
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function css(prop) {
+  return getComputedStyle(document.documentElement).getPropertyValue(prop).trim();
+}
+
+function toggleTheme() {
+  const root = document.documentElement;
+  const isLight = root.classList.toggle('light');
+  document.getElementById('themeToggle').textContent = isLight ? '☀️' : '🌙';
+  localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  updateChart();
+}
+
+// Restore saved theme
+if (localStorage.getItem('theme') === 'light') {
+  document.documentElement.classList.add('light');
+  document.getElementById('themeToggle').textContent = '☀️';
+}
+
+function copyColName(name) {
+  navigator.clipboard.writeText(name).then(() => {
+    const el = document.querySelector(`.check-item[data-col="${CSS.escape(name)}"] .copy-btn`);
+    if (el) { const orig = el.textContent; el.textContent = '✓'; setTimeout(() => el.textContent = orig, 800); }
+  });
+}
+
+// ========== CHART ==========
+function updateChart() {
+  const xCol = document.getElementById('xSelect').value;
+  if (!xCol) return;
+
+  const yCols = [];
+  document.querySelectorAll('#yChecklist input:checked').forEach(cb => yCols.push(cb.value));
+
+  if (yCols.length === 0) {
+    Plotly.purge('chart');
+    return;
+  }
+
+  const xData = getFilteredColData(xCol);
+  const chartType = document.getElementById('chartType').value;
+  const lineWidth = parseFloat(document.getElementById('lineWidth').value) || 2;
+  const markerSize = parseFloat(document.getElementById('markerSize').value) || 4;
+  const allCols = getAllColumns();
+
+  // Split mode
+  const splitOn = document.getElementById('splitEnabled').classList.contains('active');
+  const splitModeVal = document.getElementById('splitMode').value;
+  const splitPeriod = parseFloat(document.getElementById('splitPeriod').value);
+  const splitOffset = parseFloat(document.getElementById('splitOffset').value) || 0;
+  const splitColName = document.getElementById('splitCol').value || xCol;
+  const splitData = splitOn ? getFilteredColData(splitColName) : null;
+  const usePeriodSplit = splitOn && splitModeVal === 'period' && splitPeriod > 0 && splitData;
+  const useGroupSplit = splitOn && splitModeVal === 'group' && splitData;
+
+  let traces;
+
+  if (usePeriodSplit) {
+    const buckets = new Map();
+    for (let i = 0; i < splitData.length; i++) {
+      const v = splitData[i];
+      if (typeof v !== 'number' || !isFinite(v)) continue;
+      const bucket = Math.floor((v - splitOffset) / splitPeriod);
+      if (!buckets.has(bucket)) buckets.set(bucket, []);
+      buckets.get(bucket).push(i);
+    }
+    const sortedBuckets = [...buckets.entries()].sort((a, b) => a[0] - b[0]);
+
+    traces = [];
+    for (const yCol of yCols) {
+      const fullY = getFilteredColData(yCol);
+      const colIdx = allCols.indexOf(yCol);
+      const baseColor = COLORS[colIdx % COLORS.length];
+
+      sortedBuckets.forEach(([bucket, indices], bi) => {
+        const bucketStart = splitOffset + bucket * splitPeriod;
+        const bucketEnd = bucketStart + splitPeriod;
+        const relX = indices.map(i => splitData[i] - bucketStart);
+        const segY = indices.map(i => fullY[i]);
+        const label = `${yCol} [${bucketStart}–${bucketEnd})`;
+
+        const opacity = 0.35 + 0.65 * (bi / Math.max(sortedBuckets.length - 1, 1));
+        const trace = {
+          x: relX, y: segY, name: label,
+          marker: { color: baseColor, size: markerSize, opacity },
+          line: { color: baseColor, width: lineWidth },
+          opacity, legendgroup: yCol,
+        };
+        if (chartType === 'bar') { trace.type = 'bar'; }
+        else { trace.type = 'scattergl'; trace.mode = chartType; }
+        traces.push(trace);
+      });
+    }
+  } else if (useGroupSplit) {
+    const groups = new Map();
+    for (let i = 0; i < splitData.length; i++) {
+      const key = String(splitData[i] ?? '');
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(i);
+    }
+    const sortedGroups = [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]));
+    const groupColors = {};
+    sortedGroups.forEach(([key], gi) => { groupColors[key] = COLORS[gi % COLORS.length]; });
+
+    traces = [];
+    for (const yCol of yCols) {
+      const fullX = getFilteredColData(xCol);
+      const fullY = getFilteredColData(yCol);
+      const colIdx = allCols.indexOf(yCol);
+
+      sortedGroups.forEach(([key, indices]) => {
+        const gx = indices.map(i => fullX[i]);
+        const gy = indices.map(i => fullY[i]);
+        const color = groupColors[key];
+        const label = yCols.length > 1 ? `${yCol} — ${key}` : key;
+
+        const trace = {
+          x: gx, y: gy, name: label,
+          marker: { color, size: markerSize },
+          line: { color, width: lineWidth },
+          legendgroup: key,
+        };
+        if (chartType === 'bar') { trace.type = 'bar'; }
+        else { trace.type = 'scattergl'; trace.mode = chartType; }
+        traces.push(trace);
+      });
+    }
+  } else {
+    traces = yCols.map(yCol => {
+      const yData = getFilteredColData(yCol);
+      const idx = allCols.indexOf(yCol);
+      const color = COLORS[idx % COLORS.length];
+
+      const trace = {
+        x: xData,
+        y: yData,
+        name: yCol,
+        marker: { color, size: markerSize },
+        line: { color, width: lineWidth },
+      };
+
+      if (chartType === 'bar') {
+        trace.type = 'bar';
+      } else {
+        trace.type = 'scattergl';
+        trace.mode = chartType;
+      }
+      return trace;
+    });
+  }
+
+  const xLog = document.getElementById('xLog').classList.contains('active');
+  const yLog = document.getElementById('yLog').classList.contains('active');
+
+  const layout = {
+    paper_bgcolor: css('--chart-bg'),
+    plot_bgcolor: css('--chart-bg'),
+    font: { color: css('--chart-font'), family: 'Segoe UI, sans-serif', size: 12 },
+    margin: { l: 60, r: 30, t: 30, b: 50 },
+    xaxis: {
+      title: document.getElementById('xLabel').value || (usePeriodSplit ? `${splitColName} (주기 내 상대값)` : xCol),
+      type: xLog ? 'log' : (typeof xData[0] === 'string' && !usePeriodSplit ? 'category' : 'linear'),
+      gridcolor: css('--chart-grid'),
+      zerolinecolor: css('--chart-grid'),
+    },
+    yaxis: {
+      title: document.getElementById('yLabel').value || (yCols.length === 1 ? yCols[0] : ''),
+      type: yLog ? 'log' : 'linear',
+      gridcolor: css('--chart-grid'),
+      zerolinecolor: css('--chart-grid'),
+    },
+    legend: {
+      bgcolor: css('--chart-legend-bg'),
+      bordercolor: css('--chart-grid'),
+      borderwidth: 1,
+      font: { size: 11 },
+    },
+    hovermode: 'x unified',
+  };
+
+  // Manual axis settings
+  const xMinVal = document.getElementById('xMin').value;
+  const xMaxVal = document.getElementById('xMax').value;
+  const yMinVal = document.getElementById('yMin').value;
+  const yMaxVal = document.getElementById('yMax').value;
+  const xTick = document.getElementById('xTick').value;
+  const yTick = document.getElementById('yTick').value;
+
+  if (xMinVal !== '' || xMaxVal !== '') {
+    const nums = xData.filter(v => typeof v === 'number' && isFinite(v));
+    const autoMin = nums.length ? Math.min(...nums) : 0;
+    const autoMax = nums.length ? Math.max(...nums) : 1;
+    layout.xaxis.range = [
+      xMinVal !== '' ? Number(xMinVal) : autoMin,
+      xMaxVal !== '' ? Number(xMaxVal) : autoMax,
+    ];
+    layout.xaxis.autorange = false;
+  }
+  if (yMinVal !== '' || yMaxVal !== '') {
+    const allYNums = yCols.flatMap(yCol => getFilteredColData(yCol).filter(v => typeof v === 'number' && isFinite(v)));
+    const autoMin = allYNums.length ? Math.min(...allYNums) : 0;
+    const autoMax = allYNums.length ? Math.max(...allYNums) : 1;
+    layout.yaxis.range = [
+      yMinVal !== '' ? Number(yMinVal) : autoMin,
+      yMaxVal !== '' ? Number(yMaxVal) : autoMax,
+    ];
+    layout.yaxis.autorange = false;
+  }
+  if (xTick) layout.xaxis.dtick = Number(xTick);
+  if (yTick) layout.yaxis.dtick = Number(yTick);
+
+  const config = {
+    responsive: true,
+    displaylogo: false,
+    modeBarButtonsToAdd: [],
+  };
+
+  Plotly.react('chart', traces, layout, config);
+}
+
+function applyAxisSettings() {
+  updateChart();
+}
+
+function onSplitModeChange() {
+  const mode = document.getElementById('splitMode').value;
+  document.getElementById('splitPeriodOpts').style.display = mode === 'period' ? '' : 'none';
+}
+
+// ========== FORMULA ENGINE ==========
+function addFormula() {
+  const nameInput = document.getElementById('formulaName');
+  const exprInput = document.getElementById('formulaExpr');
+  const name = nameInput.value.trim();
+  const expr = exprInput.value.trim();
+  if (!name || !expr) return alert('컬럼명과 수식을 모두 입력하세요.');
+  if (columns.includes(name)) return alert('기존 컬럼명과 중복됩니다.');
+  if (derivedCols.some(d => d.name === name)) return alert('이미 같은 이름의 파생 컬럼이 존재합니다.');
+
+  derivedCols.push({ name, expr });
+  nameInput.value = '';
+  exprInput.value = '';
+
+  recalcDerived();
+  populateControls();
+  renderFormulaList();
+  updateChart();
+}
+
+function removeFormula(name) {
+  derivedCols = derivedCols.filter(d => d.name !== name);
+  recalcDerived();
+  populateControls();
+  renderFormulaList();
+  updateChart();
+}
+
+function renderFormulaList() {
+  const list = document.getElementById('formulaList');
+  list.innerHTML = derivedCols.map(d =>
+    `<span class="formula-tag">
+      <strong>${esc(d.name)}</strong> = ${esc(d.expr)}
+      <span class="remove" onclick="removeFormula('${d.name.replace(/'/g, "\\'")}')">&times;</span>
+    </span>`
+  ).join('');
+}
+
+// ---- Column-level functions (LOESS, movavg, etc.) ----
+
+function computeLoess(yArr, xArr, span) {
+  const n = yArr.length;
+  if (n === 0) return [];
+  span = Math.max(0.05, Math.min(1, span || 0.25));
+  const k = Math.max(2, Math.ceil(span * n));
+  const result = new Array(n);
+
+  for (let i = 0; i < n; i++) {
+    const xi = xArr[i];
+    if (xi == null || !isFinite(xi)) { result[i] = null; continue; }
+
+    // Compute distances and find k nearest
+    const dists = [];
+    for (let j = 0; j < n; j++) {
+      if (xArr[j] == null || yArr[j] == null || !isFinite(xArr[j]) || !isFinite(yArr[j])) continue;
+      dists.push({ j, d: Math.abs(xArr[j] - xi) });
+    }
+    dists.sort((a, b) => a.d - b.d);
+    const neighbors = dists.slice(0, k);
+    if (neighbors.length < 2) { result[i] = neighbors.length === 1 ? yArr[neighbors[0].j] : null; continue; }
+
+    const maxDist = neighbors[neighbors.length - 1].d || 1;
+
+    // Tricube weight
+    let sw = 0, swx = 0, swy = 0, swxx = 0, swxy = 0;
+    for (const nb of neighbors) {
+      const u = nb.d / (maxDist * 1.001);
+      const w = (1 - u * u * u);
+      const wt = w * w * w;
+      const xj = xArr[nb.j], yj = yArr[nb.j];
+      sw += wt; swx += wt * xj; swy += wt * yj;
+      swxx += wt * xj * xj; swxy += wt * xj * yj;
+    }
+
+    // Weighted linear regression
+    const det = sw * swxx - swx * swx;
+    if (Math.abs(det) < 1e-15) {
+      result[i] = sw > 0 ? swy / sw : null;
+    } else {
+      const b0 = (swxx * swy - swx * swxy) / det;
+      const b1 = (sw * swxy - swx * swy) / det;
+      result[i] = b0 + b1 * xi;
+    }
+  }
+  return result;
+}
+
+function computeMovAvg(arr, window) {
+  const n = arr.length;
+  const half = Math.floor((window || 5) / 2);
+  const result = new Array(n);
+  for (let i = 0; i < n; i++) {
+    let sum = 0, cnt = 0;
+    for (let j = Math.max(0, i - half); j <= Math.min(n - 1, i + half); j++) {
+      if (arr[j] != null && isFinite(arr[j])) { sum += arr[j]; cnt++; }
+    }
+    result[i] = cnt > 0 ? sum / cnt : null;
+  }
+  return result;
+}
+
+function computeEma(arr, alpha) {
+  const n = arr.length;
+  alpha = Math.max(0.001, Math.min(1, alpha || 0.1));
+  const result = new Array(n);
+  let prev = null;
+  for (let i = 0; i < n; i++) {
+    if (arr[i] != null && isFinite(arr[i])) {
+      prev = prev === null ? arr[i] : alpha * arr[i] + (1 - alpha) * prev;
+      result[i] = prev;
+    } else {
+      result[i] = prev;
+    }
+  }
+  return result;
+}
+
+function computeDiff(arr) {
+  const n = arr.length;
+  const result = new Array(n);
+  result[0] = null;
+  for (let i = 1; i < n; i++) {
+    if (arr[i] != null && arr[i - 1] != null && isFinite(arr[i]) && isFinite(arr[i - 1])) {
+      result[i] = arr[i] - arr[i - 1];
+    } else {
+      result[i] = null;
+    }
+  }
+  return result;
+}
+
+function computeCumsum(arr) {
+  const n = arr.length;
+  const result = new Array(n);
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    if (arr[i] != null && isFinite(arr[i])) sum += arr[i];
+    result[i] = sum;
+  }
+  return result;
+}
+
+function resolveColArray(name, dc) {
+  name = name.trim();
+  if (rawData[name]) return rawData[name];
+  const prev = derivedCols.find(d => d.name === name && d !== dc && d.data);
+  if (prev) return prev.data;
+  return null;
+}
+
+function getXArray() {
+  const xCol = document.getElementById('xSelect').value;
+  if (xCol && rawData[xCol]) return rawData[xCol];
+  const n = rawData[columns[0]]?.length || 0;
+  return Array.from({ length: n }, (_, i) => i);
+}
+
+function preprocessColumnFns(expr, dc) {
+  const precomputed = {};
+  let idx = 0;
+
+  // Pattern: fnName(colName) or fnName(colName, param)
+  const fnPattern = /\b(loess|movavg|ema|diff|cumsum)\s*\(([^)]+)\)/g;
+
+  const replaced = expr.replace(fnPattern, (match, fn, argsStr) => {
+    const args = argsStr.split(',').map(s => s.trim());
+    const colName = args[0];
+    const colData = resolveColArray(colName, dc);
+    if (!colData) return match;
+
+    let result;
+    const param = args[1] !== undefined ? parseFloat(args[1]) : undefined;
+
+    switch (fn) {
+      case 'loess':
+        result = computeLoess(colData, getXArray(), isNaN(param) ? 0.25 : param);
+        break;
+      case 'movavg':
+        result = computeMovAvg(colData, isNaN(param) ? 5 : Math.round(param));
+        break;
+      case 'ema':
+        result = computeEma(colData, isNaN(param) ? 0.1 : param);
+        break;
+      case 'diff':
+        result = computeDiff(colData);
+        break;
+      case 'cumsum':
+        result = computeCumsum(colData);
+        break;
+      default:
+        return match;
+    }
+
+    const key = `__pre${idx++}`;
+    precomputed[key] = result;
+    return key;
+  });
+
+  return { expr: replaced, precomputed };
+}
+
+// ---- Main derived column calculation ----
+
+function recalcDerived() {
+  if (!columns.length) return;
+  const rowCount = rawData[columns[0]]?.length || 0;
+
+  const mathFns = {
+    sin: Math.sin, cos: Math.cos, tan: Math.tan,
+    asin: Math.asin, acos: Math.acos, atan: Math.atan,
+    sqrt: Math.sqrt, abs: Math.abs, log: Math.log,
+    log2: Math.log2, log10: Math.log10, exp: Math.exp,
+    pow: Math.pow, min: Math.min, max: Math.max,
+    round: Math.round, ceil: Math.ceil, floor: Math.floor,
+    PI: Math.PI, E: Math.E,
+  };
+
+  for (const dc of derivedCols) {
+    try {
+      // Preprocess column-level functions (loess, movavg, etc.)
+      const { expr: preprocessedExpr, precomputed } = preprocessColumnFns(dc.expr, dc);
+
+      const data = [];
+      for (let i = 0; i < rowCount; i++) {
+        const scope = { ...mathFns };
+        for (const c of columns) {
+          scope[sanitizeId(c)] = rawData[c][i];
+        }
+        for (const prev of derivedCols) {
+          if (prev.name === dc.name) break;
+          if (prev.data) scope[sanitizeId(prev.name)] = prev.data[i];
+        }
+        // Inject precomputed column-level values
+        for (const key of Object.keys(precomputed)) {
+          scope[key] = precomputed[key][i];
+        }
+
+        let evalExpr = preprocessedExpr;
+        const allNames = [...columns, ...derivedCols.filter(d => d.name !== dc.name && d.data).map(d => d.name)];
+        allNames.sort((a, b) => b.length - a.length);
+        for (const n of allNames) {
+          const sid = sanitizeId(n);
+          evalExpr = evalExpr.replace(new RegExp('(?<![a-zA-Z0-9_])' + escRegex(n) + '(?![a-zA-Z0-9_])', 'g'), `scope["${sid}"]`);
+        }
+        for (const fn of Object.keys(mathFns)) {
+          evalExpr = evalExpr.replace(new RegExp('(?<![a-zA-Z0-9_])' + fn + '(?=\\()', 'g'), `scope["${fn}"]`);
+          evalExpr = evalExpr.replace(new RegExp('(?<![a-zA-Z0-9_."])' + fn + '(?![a-zA-Z0-9_("])', 'g'), `scope["${fn}"]`);
+        }
+        // Inject precomputed references
+        for (const key of Object.keys(precomputed)) {
+          evalExpr = evalExpr.replace(new RegExp('\\b' + key + '\\b', 'g'), `scope["${key}"]`);
+        }
+
+        const val = new Function('scope', `"use strict"; return (${evalExpr});`)(scope);
+        data.push(typeof val === 'number' && isFinite(val) ? val : null);
+      }
+      dc.data = data;
+    } catch (e) {
+      console.warn(`Formula error for "${dc.name}":`, e);
+      dc.data = new Array(rowCount).fill(null);
+    }
+  }
+}
+
+function sanitizeId(name) {
+  return name.replace(/[^a-zA-Z0-9_]/g, '_');
+}
+
+function escRegex(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// ========== FILTER ENGINE ==========
+function addFilter() {
+  const input = document.getElementById('filterExpr');
+  const expr = input.value.trim();
+  if (!expr) return;
+  filters.push({ expr, enabled: true, id: ++filterIdCounter });
+  input.value = '';
+  applyFilters();
+  renderFilterList();
+  updateChart();
+}
+
+function removeFilter(id) {
+  filters = filters.filter(f => f.id !== id);
+  applyFilters();
+  renderFilterList();
+  updateChart();
+}
+
+function toggleFilter(id) {
+  const f = filters.find(f => f.id === id);
+  if (f) f.enabled = !f.enabled;
+  applyFilters();
+  renderFilterList();
+  updateChart();
+}
+
+function applyFilters() {
+  const activeFilters = filters.filter(f => f.enabled);
+  if (!columns.length || activeFilters.length === 0) {
+    filteredIndices = null;
+    updateFilterCount();
+    return;
+  }
+
+  const rowCount = rawData[columns[0]]?.length || 0;
+  const mathFns = {
+    sin: Math.sin, cos: Math.cos, tan: Math.tan,
+    asin: Math.asin, acos: Math.acos, atan: Math.atan,
+    sqrt: Math.sqrt, abs: Math.abs, log: Math.log,
+    log2: Math.log2, log10: Math.log10, exp: Math.exp,
+    pow: Math.pow, min: Math.min, max: Math.max,
+    round: Math.round, ceil: Math.ceil, floor: Math.floor,
+    PI: Math.PI, E: Math.E,
+  };
+
+  // Precompile filter expressions
+  const allNames = [...columns, ...derivedCols.map(d => d.name)];
+  allNames.sort((a, b) => b.length - a.length);
+
+  const compiledFilters = activeFilters.map(f => {
+    let evalExpr = f.expr;
+    for (const n of allNames) {
+      const sid = sanitizeId(n);
+      evalExpr = evalExpr.replace(new RegExp('(?<![a-zA-Z0-9_])' + escRegex(n) + '(?![a-zA-Z0-9_])', 'g'), `scope["${sid}"]`);
+    }
+    for (const fn of Object.keys(mathFns)) {
+      evalExpr = evalExpr.replace(new RegExp('(?<![a-zA-Z0-9_])' + fn + '(?=\\()', 'g'), `scope["${fn}"]`);
+      evalExpr = evalExpr.replace(new RegExp('(?<![a-zA-Z0-9_."])' + fn + '(?![a-zA-Z0-9_("])', 'g'), `scope["${fn}"]`);
+    }
+    try {
+      const fn = new Function('scope', `"use strict"; return !!(${evalExpr});`);
+      return { fn, error: false, id: f.id };
+    } catch (e) {
+      console.warn(`Filter compile error for "${f.expr}":`, e);
+      return { fn: null, error: true, id: f.id };
+    }
+  });
+
+  // Mark errored filters
+  for (const cf of compiledFilters) {
+    const fObj = filters.find(f => f.id === cf.id);
+    if (fObj) fObj._error = cf.error;
+  }
+
+  const validFilters = compiledFilters.filter(cf => !cf.error);
+  if (validFilters.length === 0) {
+    filteredIndices = null;
+    updateFilterCount();
+    return;
+  }
+
+  const indices = [];
+  for (let i = 0; i < rowCount; i++) {
+    const scope = { ...mathFns };
+    for (const c of columns) scope[sanitizeId(c)] = rawData[c][i];
+    for (const dc of derivedCols) {
+      if (dc.data) scope[sanitizeId(dc.name)] = dc.data[i];
+    }
+
+    let pass = true;
+    for (const cf of validFilters) {
+      try {
+        if (!cf.fn(scope)) { pass = false; break; }
+      } catch { pass = false; break; }
+    }
+    if (pass) indices.push(i);
+  }
+
+  filteredIndices = indices;
+  updateFilterCount();
+}
+
+function updateFilterCount() {
+  const el = document.getElementById('filterCount');
+  if (!columns.length) { el.textContent = ''; return; }
+  const total = rawData[columns[0]]?.length || 0;
+  if (filteredIndices === null) {
+    el.innerHTML = `전체 <strong>${total.toLocaleString()}</strong> 행 표시 중`;
+  } else {
+    el.innerHTML = `<strong>${filteredIndices.length.toLocaleString()}</strong> / ${total.toLocaleString()} 행 표시 중`;
+  }
+}
+
+function renderFilterList() {
+  const list = document.getElementById('filterList');
+  list.innerHTML = filters.map(f => {
+    const errClass = f._error ? ' error' : '';
+    const toggleClass = f.enabled ? '' : ' off';
+    return `<div class="filter-tag${errClass}">
+      <div class="filter-toggle${toggleClass}" onclick="toggleFilter(${f.id})"></div>
+      <span class="filter-expr" title="${esc(f.expr)}">${esc(f.expr)}</span>
+      <span class="remove" onclick="removeFilter(${f.id})">&times;</span>
+    </div>`;
+  }).join('');
+}
+
+function getFilteredColData(name) {
+  const full = getColData(name);
+  if (filteredIndices === null) return full;
+  return filteredIndices.map(i => full[i]);
+}
+
+// ========== UI HELPERS ==========
+function toggleSection(header) {
+  const chevron = header.querySelector('.chevron');
+  const body = header.nextElementSibling;
+  chevron.classList.toggle('collapsed');
+  body.classList.toggle('collapsed-body');
+}
+
+function toggleSwitch(el) {
+  el.classList.toggle('active');
+  updateChart();
+}
+
+// PNG save
+document.getElementById('savePng').addEventListener('click', () => {
+  Plotly.downloadImage('chart', {
+    format: 'png',
+    width: 1920,
+    height: 1080,
+    filename: fileName ? fileName.replace(/\.[^.]+$/, '') + '_chart' : 'chart',
+    scale: 2,
+  });
+});
+
+// Resize chart
+window.addEventListener('resize', () => {
+  const chartEl = document.getElementById('chart');
+  if (chartEl && chartEl.data) Plotly.Plots.resize(chartEl);
+});
+
+// ========== SESSION SAVE / LOAD ==========
+function saveSession() {
+  const session = {
+    version: 1,
+    fileName,
+    columns,
+    rawData,
+    derivedCols: derivedCols.map(d => ({ name: d.name, expr: d.expr })),
+    filters: filters.map(f => ({ expr: f.expr, enabled: f.enabled })),
+    settings: {
+      xCol: document.getElementById('xSelect').value,
+      yChecked: [...document.querySelectorAll('#yChecklist input:checked')].map(cb => cb.value),
+      chartType: document.getElementById('chartType').value,
+      lineWidth: document.getElementById('lineWidth').value,
+      markerSize: document.getElementById('markerSize').value,
+      xLog: document.getElementById('xLog').classList.contains('active'),
+      yLog: document.getElementById('yLog').classList.contains('active'),
+      xMin: document.getElementById('xMin').value,
+      xMax: document.getElementById('xMax').value,
+      yMin: document.getElementById('yMin').value,
+      yMax: document.getElementById('yMax').value,
+      xTick: document.getElementById('xTick').value,
+      yTick: document.getElementById('yTick').value,
+      xLabel: document.getElementById('xLabel').value,
+      yLabel: document.getElementById('yLabel').value,
+      splitEnabled: document.getElementById('splitEnabled').classList.contains('active'),
+      splitMode: document.getElementById('splitMode').value,
+      splitCol: document.getElementById('splitCol').value,
+      splitPeriod: document.getElementById('splitPeriod').value,
+      splitOffset: document.getElementById('splitOffset').value,
+      theme: document.documentElement.classList.contains('light') ? 'light' : 'dark',
+      sidebarWidth: document.getElementById('sidebar').style.width || '',
+    },
+  };
+
+  const blob = new Blob([JSON.stringify(session)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (fileName ? fileName.replace(/\.[^.]+$/, '') : 'session') + '.graph.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function loadSession(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const s = JSON.parse(e.target.result);
+      if (!s.columns || !s.rawData) return alert('유효한 세션 파일이 아닙니다.');
+
+      // Restore core data
+      fileName = s.fileName || '';
+      columns = s.columns;
+      rawData = s.rawData;
+
+      // Restore derived columns
+      derivedCols = (s.derivedCols || []).map(d => ({ name: d.name, expr: d.expr }));
+      recalcDerived();
+
+      // Restore filters
+      filters = (s.filters || []).map(f => ({ expr: f.expr, enabled: f.enabled, id: ++filterIdCounter }));
+      applyFilters();
+      renderFilterList();
+
+      // Populate UI controls
+      populateControls();
+      renderFormulaList();
+
+      // Defaults for backward compatibility — new settings added here
+      const defaults = {
+        xCol: columns[0] || '',
+        yChecked: [],
+        chartType: 'lines',
+        lineWidth: '2',
+        markerSize: '4',
+        xLog: false,
+        yLog: false,
+        xMin: '', xMax: '', yMin: '', yMax: '',
+        xTick: '', yTick: '',
+        xLabel: '', yLabel: '',
+        splitEnabled: false,
+        splitMode: 'period',
+        splitCol: '',
+        splitPeriod: '',
+        splitOffset: '0',
+        theme: 'dark',
+        sidebarWidth: '',
+      };
+      const st = { ...defaults, ...(s.settings || {}) };
+
+      // Theme
+      if (st.theme === 'light') {
+        document.documentElement.classList.add('light');
+        document.getElementById('themeToggle').textContent = '☀️';
+      } else {
+        document.documentElement.classList.remove('light');
+        document.getElementById('themeToggle').textContent = '🌙';
+      }
+      localStorage.setItem('theme', st.theme);
+
+      // X axis
+      document.getElementById('xSelect').value = st.xCol;
+
+      // Y checked
+      const ySet = new Set(st.yChecked);
+      document.querySelectorAll('#yChecklist input[type="checkbox"]').forEach(cb => {
+        cb.checked = ySet.has(cb.value);
+      });
+
+      // Chart options
+      document.getElementById('chartType').value = st.chartType;
+      document.getElementById('lineWidth').value = st.lineWidth;
+      document.getElementById('markerSize').value = st.markerSize;
+
+      // Axis settings
+      document.getElementById('xLog').classList.toggle('active', st.xLog);
+      document.getElementById('yLog').classList.toggle('active', st.yLog);
+      document.getElementById('xMin').value = st.xMin;
+      document.getElementById('xMax').value = st.xMax;
+      document.getElementById('yMin').value = st.yMin;
+      document.getElementById('yMax').value = st.yMax;
+      document.getElementById('xTick').value = st.xTick;
+      document.getElementById('yTick').value = st.yTick;
+      document.getElementById('xLabel').value = st.xLabel;
+      document.getElementById('yLabel').value = st.yLabel;
+
+      // Split settings
+      document.getElementById('splitEnabled').classList.toggle('active', st.splitEnabled);
+      document.getElementById('splitMode').value = st.splitMode;
+      onSplitModeChange();
+      document.getElementById('splitCol').value = st.splitCol;
+      document.getElementById('splitPeriod').value = st.splitPeriod;
+      document.getElementById('splitOffset').value = st.splitOffset;
+
+      // Sidebar width
+      if (st.sidebarWidth) document.getElementById('sidebar').style.width = st.sidebarWidth;
+
+      // Status bar
+      document.getElementById('statusFile').textContent = `📄 ${fileName || '(세션에서 로드)'}`;
+      const rowCount = rawData[columns[0]]?.length || 0;
+      document.getElementById('statusRows').textContent = `${rowCount.toLocaleString()} 행`;
+      document.getElementById('statusCols').textContent = `${columns.length} 컬럼`;
+      document.getElementById('savePng').disabled = false;
+      document.getElementById('emptyState')?.remove();
+
+      updateChart();
+    } catch (err) {
+      alert('세션 파일 로드 실패: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+// Sidebar resize
+(() => {
+  const handle = document.getElementById('sidebarResizeHandle');
+  const sidebar = document.getElementById('sidebar');
+  let startX, startW;
+
+  handle.addEventListener('mousedown', e => {
+    e.preventDefault();
+    startX = e.clientX;
+    startW = sidebar.offsetWidth;
+    handle.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  });
+
+  function onMove(e) {
+    const dx = e.clientX - startX;
+    const newW = Math.max(180, Math.min(window.innerWidth * 0.6, startW + dx));
+    sidebar.style.width = newW + 'px';
+  }
+
+  function onUp() {
+    handle.classList.remove('dragging');
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    const chartEl = document.getElementById('chart');
+    if (chartEl && chartEl.data) Plotly.Plots.resize(chartEl);
+  }
+})();
+
+// Keyboard shortcuts
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'o') {
+    e.preventDefault();
+    fileInput.click();
+  }
+});
+</script>
+</body>
+</html>
+
