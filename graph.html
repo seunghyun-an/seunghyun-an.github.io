@@ -176,11 +176,45 @@
     flex: 1;
     min-height: 0;
   }
-  #yChecklist {
+  #yChecklist, #y2Checklist {
     overflow-y: auto;
     flex: 1;
     min-height: 0;
   }
+
+  .y-axis-tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 8px;
+    flex-shrink: 0;
+  }
+  .y-axis-tab {
+    flex: 1;
+    padding: 6px 0;
+    border: 1px solid var(--border);
+    background: var(--bg);
+    color: var(--text-dim);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .y-axis-tab:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+  .y-axis-tab:last-child { border-radius: 0 var(--radius) var(--radius) 0; border-left: none; }
+  .y-axis-tab.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+  .y-panel {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+  .y-panel.hidden { display: none; }
 
   /* Form controls */
   select, input[type="text"], input[type="number"] {
@@ -599,20 +633,36 @@
       </div>
     </div>
 
-    <!-- Y axis -->
+    <!-- Y axis (tabbed Y1/Y2) -->
     <div class="sidebar-section y-axis-section">
       <div class="sidebar-section-header" onclick="toggleSection(this)">
         Y축 선택 <span class="chevron">▼</span>
       </div>
       <div class="sidebar-section-body">
-        <div class="y-search">
-          <input type="text" id="ySearch" placeholder="컬럼 검색..." disabled>
+        <div class="y-axis-tabs">
+          <button class="y-axis-tab active" data-tab="y1" onclick="switchYTab('y1')">Y1 (Left)</button>
+          <button class="y-axis-tab" data-tab="y2" onclick="switchYTab('y2')">Y2 (Right)</button>
         </div>
-        <div class="y-select-actions">
-          <button class="btn btn-sm" id="selectAll" disabled>전체 선택</button>
-          <button class="btn btn-sm" id="deselectAll" disabled>전체 해제</button>
+        <div id="y1Panel" class="y-panel">
+          <div class="y-search">
+            <input type="text" id="ySearch" placeholder="컬럼 검색..." disabled>
+          </div>
+          <div class="y-select-actions">
+            <button class="btn btn-sm" id="selectAll" disabled>전체 선택</button>
+            <button class="btn btn-sm" id="deselectAll" disabled>전체 해제</button>
+          </div>
+          <div id="yChecklist"></div>
         </div>
-        <div id="yChecklist"></div>
+        <div id="y2Panel" class="y-panel hidden">
+          <div class="y-search">
+            <input type="text" id="y2Search" placeholder="컬럼 검색..." disabled>
+          </div>
+          <div class="y-select-actions">
+            <button class="btn btn-sm" id="y2SelectAll" disabled>전체 선택</button>
+            <button class="btn btn-sm" id="y2DeselectAll" disabled>전체 해제</button>
+          </div>
+          <div id="y2Checklist"></div>
+        </div>
       </div>
     </div>
 
@@ -628,7 +678,7 @@
             <input type="text" id="xLabel" placeholder="auto (컬럼명)">
           </div>
           <div>
-            <label class="form-label">Y축 라벨</label>
+            <label class="form-label">Y1축 라벨</label>
             <input type="text" id="yLabel" placeholder="auto">
           </div>
         </div>
@@ -637,7 +687,7 @@
           <div class="toggle" id="xLog" onclick="toggleSwitch(this)"></div>
         </div>
         <div class="toggle-row">
-          <span>Y축 Log 스케일</span>
+          <span>Y1축 Log 스케일</span>
           <div class="toggle" id="yLog" onclick="toggleSwitch(this)"></div>
         </div>
         <div class="form-row" style="margin-bottom: 10px">
@@ -652,11 +702,11 @@
         </div>
         <div class="form-row" style="margin-bottom: 10px">
           <div>
-            <label class="form-label">Y 최소</label>
+            <label class="form-label">Y1 최소</label>
             <input type="text" id="yMin" placeholder="auto">
           </div>
           <div>
-            <label class="form-label">Y 최대</label>
+            <label class="form-label">Y1 최대</label>
             <input type="text" id="yMax" placeholder="auto">
           </div>
         </div>
@@ -666,8 +716,33 @@
             <input type="text" id="xTick" placeholder="auto">
           </div>
           <div>
-            <label class="form-label">Y축 눈금 주기</label>
+            <label class="form-label">Y1축 눈금 주기</label>
             <input type="text" id="yTick" placeholder="auto">
+          </div>
+        </div>
+        <div style="border-top: 1px solid var(--border); margin: 8px 0; padding-top: 8px">
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-dim);margin-bottom:8px">Y2 (Right Axis)</div>
+          <div class="form-group">
+            <label class="form-label">Y2축 라벨</label>
+            <input type="text" id="y2Label" placeholder="auto">
+          </div>
+          <div class="toggle-row">
+            <span>Y2축 Log 스케일</span>
+            <div class="toggle" id="y2Log" onclick="toggleSwitch(this)"></div>
+          </div>
+          <div class="form-row" style="margin-bottom: 10px">
+            <div>
+              <label class="form-label">Y2 최소</label>
+              <input type="text" id="y2Min" placeholder="auto">
+            </div>
+            <div>
+              <label class="form-label">Y2 최대</label>
+              <input type="text" id="y2Max" placeholder="auto">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Y2축 눈금 주기</label>
+            <input type="text" id="y2Tick" placeholder="auto">
           </div>
         </div>
         <button class="btn btn-sm" style="width:100%" onclick="applyAxisSettings()">적용</button>
@@ -757,6 +832,13 @@
         <span>
           파생 데이터 수식
           <span class="tooltip-help" data-tip="수식에서 컬럼명을 사용하세요.&#10;예: col_A * 2 + col_B&#10;&#10;수학: sin, cos, sqrt, abs, log, pow, ...&#10;&#10;컬럼 함수:&#10;  loess(col, 0.25) — LOESS 평활화&#10;  movavg(col, 10) — 이동평균&#10;  ema(col, 0.1) — 지수이동평균&#10;  diff(col) — 차분 (전행 대비 변화)&#10;  cumsum(col) — 누적합">ⓘ</span>
+        </span>
+        <span style="display:flex;gap:6px">
+          <button class="btn btn-sm" onclick="exportFormulas()" title="파생 수식만 JSON으로 내보내기">📤 Export</button>
+          <label class="btn btn-sm" title="JSON에서 파생 수식만 불러오기">
+            📥 Import
+            <input type="file" accept=".json" style="display:none" onchange="importFormulas(this)">
+          </label>
         </span>
       </div>
       <div class="formula-input-row">
@@ -894,9 +976,8 @@ function populateControls() {
     allCols.map(c => `<option value="${esc(c)}">${esc(c)}${derivedCols.some(d => d.name === c) ? ' ✦' : ''}</option>`).join('');
   if (prevSplit && allCols.includes(prevSplit)) splitSel.value = prevSplit;
 
-  // Y checklist
-  const yBox = document.getElementById('yChecklist');
-  yBox.innerHTML = allCols.map((c, i) => {
+  // Build checklist HTML for both Y1 and Y2
+  const checklistHtml = allCols.map((c, i) => {
     const color = COLORS[i % COLORS.length];
     const isDerived = derivedCols.some(d => d.name === c);
     return `<label class="check-item" data-col="${esc(c)}" title="${esc(c)}">
@@ -908,7 +989,15 @@ function populateControls() {
     </label>`;
   }).join('');
 
-  // Enable search
+  // Y1 checklist
+  const yBox = document.getElementById('yChecklist');
+  yBox.innerHTML = checklistHtml;
+
+  // Y2 checklist
+  const y2Box = document.getElementById('y2Checklist');
+  y2Box.innerHTML = checklistHtml;
+
+  // Y1 search
   const ySearch = document.getElementById('ySearch');
   ySearch.disabled = false;
   ySearch.oninput = () => {
@@ -918,7 +1007,17 @@ function populateControls() {
     });
   };
 
-  // Select all / deselect all
+  // Y2 search
+  const y2Search = document.getElementById('y2Search');
+  y2Search.disabled = false;
+  y2Search.oninput = () => {
+    const q = y2Search.value.toLowerCase();
+    y2Box.querySelectorAll('.check-item').forEach(el => {
+      el.style.display = el.dataset.col.toLowerCase().includes(q) ? '' : 'none';
+    });
+  };
+
+  // Y1 select all / deselect all
   document.getElementById('selectAll').disabled = false;
   document.getElementById('deselectAll').disabled = false;
   document.getElementById('selectAll').onclick = () => {
@@ -929,6 +1028,20 @@ function populateControls() {
   };
   document.getElementById('deselectAll').onclick = () => {
     yBox.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+    updateChart();
+  };
+
+  // Y2 select all / deselect all
+  document.getElementById('y2SelectAll').disabled = false;
+  document.getElementById('y2DeselectAll').disabled = false;
+  document.getElementById('y2SelectAll').onclick = () => {
+    y2Box.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      if (cb.closest('.check-item').style.display !== 'none') cb.checked = true;
+    });
+    updateChart();
+  };
+  document.getElementById('y2DeselectAll').onclick = () => {
+    y2Box.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
     updateChart();
   };
 }
@@ -975,35 +1088,10 @@ function copyColName(name) {
 }
 
 // ========== CHART ==========
-function updateChart() {
-  const xCol = document.getElementById('xSelect').value;
-  if (!xCol) return;
-
-  const yCols = [];
-  document.querySelectorAll('#yChecklist input:checked').forEach(cb => yCols.push(cb.value));
-
-  if (yCols.length === 0) {
-    Plotly.purge('chart');
-    return;
-  }
-
-  const xData = getFilteredColData(xCol);
-  const chartType = document.getElementById('chartType').value;
-  const lineWidth = parseFloat(document.getElementById('lineWidth').value) || 2;
-  const markerSize = parseFloat(document.getElementById('markerSize').value) || 4;
-  const allCols = getAllColumns();
-
-  // Split mode
-  const splitOn = document.getElementById('splitEnabled').classList.contains('active');
-  const splitModeVal = document.getElementById('splitMode').value;
-  const splitPeriod = parseFloat(document.getElementById('splitPeriod').value);
-  const splitOffset = parseFloat(document.getElementById('splitOffset').value) || 0;
-  const splitColName = document.getElementById('splitCol').value || xCol;
-  const splitData = splitOn ? getFilteredColData(splitColName) : null;
+function buildTraces(colList, xData, xCol, axisKey, chartType, lineWidth, markerSize, allCols, splitOn, splitModeVal, splitPeriod, splitOffset, splitColName, splitData) {
   const usePeriodSplit = splitOn && splitModeVal === 'period' && splitPeriod > 0 && splitData;
   const useGroupSplit = splitOn && splitModeVal === 'group' && splitData;
-
-  let traces;
+  const traces = [];
 
   if (usePeriodSplit) {
     const buckets = new Map();
@@ -1016,8 +1104,7 @@ function updateChart() {
     }
     const sortedBuckets = [...buckets.entries()].sort((a, b) => a[0] - b[0]);
 
-    traces = [];
-    for (const yCol of yCols) {
+    for (const yCol of colList) {
       const fullY = getFilteredColData(yCol);
       const colIdx = allCols.indexOf(yCol);
       const baseColor = COLORS[colIdx % COLORS.length];
@@ -1036,6 +1123,7 @@ function updateChart() {
           line: { color: baseColor, width: lineWidth },
           opacity, legendgroup: yCol,
         };
+        if (axisKey) trace.yaxis = axisKey;
         if (chartType === 'bar') { trace.type = 'bar'; }
         else { trace.type = 'scattergl'; trace.mode = chartType; }
         traces.push(trace);
@@ -1052,17 +1140,15 @@ function updateChart() {
     const groupColors = {};
     sortedGroups.forEach(([key], gi) => { groupColors[key] = COLORS[gi % COLORS.length]; });
 
-    traces = [];
-    for (const yCol of yCols) {
+    for (const yCol of colList) {
       const fullX = getFilteredColData(xCol);
       const fullY = getFilteredColData(yCol);
-      const colIdx = allCols.indexOf(yCol);
 
       sortedGroups.forEach(([key, indices]) => {
         const gx = indices.map(i => fullX[i]);
         const gy = indices.map(i => fullY[i]);
         const color = groupColors[key];
-        const label = yCols.length > 1 ? `${yCol} — ${key}` : key;
+        const label = colList.length > 1 ? `${yCol} — ${key}` : key;
 
         const trace = {
           x: gx, y: gy, name: label,
@@ -1070,13 +1156,14 @@ function updateChart() {
           line: { color, width: lineWidth },
           legendgroup: key,
         };
+        if (axisKey) trace.yaxis = axisKey;
         if (chartType === 'bar') { trace.type = 'bar'; }
         else { trace.type = 'scattergl'; trace.mode = chartType; }
         traces.push(trace);
       });
     }
   } else {
-    traces = yCols.map(yCol => {
+    for (const yCol of colList) {
       const yData = getFilteredColData(yCol);
       const idx = allCols.indexOf(yCol);
       const color = COLORS[idx % COLORS.length];
@@ -1088,25 +1175,57 @@ function updateChart() {
         marker: { color, size: markerSize },
         line: { color, width: lineWidth },
       };
-
-      if (chartType === 'bar') {
-        trace.type = 'bar';
-      } else {
-        trace.type = 'scattergl';
-        trace.mode = chartType;
-      }
-      return trace;
-    });
+      if (axisKey) trace.yaxis = axisKey;
+      if (chartType === 'bar') { trace.type = 'bar'; }
+      else { trace.type = 'scattergl'; trace.mode = chartType; }
+      traces.push(trace);
+    }
   }
+  return traces;
+}
+
+function updateChart() {
+  const xCol = document.getElementById('xSelect').value;
+  if (!xCol) return;
+
+  const y1Cols = [];
+  document.querySelectorAll('#yChecklist input:checked').forEach(cb => y1Cols.push(cb.value));
+  const y2Cols = [];
+  document.querySelectorAll('#y2Checklist input:checked').forEach(cb => y2Cols.push(cb.value));
+
+  if (y1Cols.length === 0 && y2Cols.length === 0) {
+    Plotly.purge('chart');
+    return;
+  }
+
+  const xData = getFilteredColData(xCol);
+  const chartType = document.getElementById('chartType').value;
+  const lineWidth = parseFloat(document.getElementById('lineWidth').value) || 2;
+  const markerSize = parseFloat(document.getElementById('markerSize').value) || 4;
+  const allCols = getAllColumns();
+
+  const splitOn = document.getElementById('splitEnabled').classList.contains('active');
+  const splitModeVal = document.getElementById('splitMode').value;
+  const splitPeriod = parseFloat(document.getElementById('splitPeriod').value);
+  const splitOffset = parseFloat(document.getElementById('splitOffset').value) || 0;
+  const splitColName = document.getElementById('splitCol').value || xCol;
+  const splitData = splitOn ? getFilteredColData(splitColName) : null;
+  const usePeriodSplit = splitOn && splitModeVal === 'period' && splitPeriod > 0 && splitData;
+
+  const y1Traces = buildTraces(y1Cols, xData, xCol, null, chartType, lineWidth, markerSize, allCols, splitOn, splitModeVal, splitPeriod, splitOffset, splitColName, splitData);
+  const y2Traces = buildTraces(y2Cols, xData, xCol, 'y2', chartType, lineWidth, markerSize, allCols, splitOn, splitModeVal, splitPeriod, splitOffset, splitColName, splitData);
+  const traces = [...y1Traces, ...y2Traces];
 
   const xLog = document.getElementById('xLog').classList.contains('active');
   const yLog = document.getElementById('yLog').classList.contains('active');
+  const y2Log = document.getElementById('y2Log').classList.contains('active');
+  const hasY2 = y2Cols.length > 0;
 
   const layout = {
     paper_bgcolor: css('--chart-bg'),
     plot_bgcolor: css('--chart-bg'),
     font: { color: css('--chart-font'), family: 'Segoe UI, sans-serif', size: 12 },
-    margin: { l: 60, r: 30, t: 30, b: 50 },
+    margin: { l: 60, r: hasY2 ? 60 : 30, t: 30, b: 50 },
     xaxis: {
       title: document.getElementById('xLabel').value || (usePeriodSplit ? `${splitColName} (주기 내 상대값)` : xCol),
       type: xLog ? 'log' : (typeof xData[0] === 'string' && !usePeriodSplit ? 'category' : 'linear'),
@@ -1114,7 +1233,7 @@ function updateChart() {
       zerolinecolor: css('--chart-grid'),
     },
     yaxis: {
-      title: document.getElementById('yLabel').value || (yCols.length === 1 ? yCols[0] : ''),
+      title: document.getElementById('yLabel').value || (y1Cols.length === 1 ? y1Cols[0] : ''),
       type: yLog ? 'log' : 'linear',
       gridcolor: css('--chart-grid'),
       zerolinecolor: css('--chart-grid'),
@@ -1127,6 +1246,18 @@ function updateChart() {
     },
     hovermode: 'x unified',
   };
+
+  if (hasY2) {
+    layout.yaxis2 = {
+      title: document.getElementById('y2Label').value || (y2Cols.length === 1 ? y2Cols[0] : ''),
+      type: y2Log ? 'log' : 'linear',
+      overlaying: 'y',
+      side: 'right',
+      gridcolor: css('--chart-grid'),
+      zerolinecolor: css('--chart-grid'),
+      showgrid: false,
+    };
+  }
 
   // Manual axis settings
   const xMinVal = document.getElementById('xMin').value;
@@ -1147,9 +1278,9 @@ function updateChart() {
     layout.xaxis.autorange = false;
   }
   if (yMinVal !== '' || yMaxVal !== '') {
-    const allYNums = yCols.flatMap(yCol => getFilteredColData(yCol).filter(v => typeof v === 'number' && isFinite(v)));
-    const autoMin = allYNums.length ? Math.min(...allYNums) : 0;
-    const autoMax = allYNums.length ? Math.max(...allYNums) : 1;
+    const allY1Nums = y1Cols.flatMap(yCol => getFilteredColData(yCol).filter(v => typeof v === 'number' && isFinite(v)));
+    const autoMin = allY1Nums.length ? Math.min(...allY1Nums) : 0;
+    const autoMax = allY1Nums.length ? Math.max(...allY1Nums) : 1;
     layout.yaxis.range = [
       yMinVal !== '' ? Number(yMinVal) : autoMin,
       yMaxVal !== '' ? Number(yMaxVal) : autoMax,
@@ -1158,6 +1289,24 @@ function updateChart() {
   }
   if (xTick) layout.xaxis.dtick = Number(xTick);
   if (yTick) layout.yaxis.dtick = Number(yTick);
+
+  // Y2 axis manual settings
+  if (hasY2) {
+    const y2MinVal = document.getElementById('y2Min').value;
+    const y2MaxVal = document.getElementById('y2Max').value;
+    const y2Tick = document.getElementById('y2Tick').value;
+    if (y2MinVal !== '' || y2MaxVal !== '') {
+      const allY2Nums = y2Cols.flatMap(yCol => getFilteredColData(yCol).filter(v => typeof v === 'number' && isFinite(v)));
+      const autoMin = allY2Nums.length ? Math.min(...allY2Nums) : 0;
+      const autoMax = allY2Nums.length ? Math.max(...allY2Nums) : 1;
+      layout.yaxis2.range = [
+        y2MinVal !== '' ? Number(y2MinVal) : autoMin,
+        y2MaxVal !== '' ? Number(y2MaxVal) : autoMax,
+      ];
+      layout.yaxis2.autorange = false;
+    }
+    if (y2Tick) layout.yaxis2.dtick = Number(y2Tick);
+  }
 
   const config = {
     responsive: true,
@@ -1213,6 +1362,58 @@ function renderFormulaList() {
       <span class="remove" onclick="removeFormula('${d.name.replace(/'/g, "\\'")}')">&times;</span>
     </span>`
   ).join('');
+}
+
+function exportFormulas() {
+  if (derivedCols.length === 0) return alert('내보낼 파생 수식이 없습니다.');
+  const payload = { formulas: derivedCols.map(d => ({ name: d.name, expr: d.expr })) };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (fileName ? fileName.replace(/\.[^.]+$/, '') : 'formulas') + '.formulas.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importFormulas(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      let incoming = [];
+      if (Array.isArray(data.formulas)) {
+        incoming = data.formulas;
+      } else if (Array.isArray(data.derivedCols)) {
+        incoming = data.derivedCols;
+      } else {
+        return alert('유효한 수식 파일이 아닙니다. (formulas 또는 derivedCols 배열 필요)');
+      }
+
+      const existingNames = new Set([...columns, ...derivedCols.map(d => d.name)]);
+      let added = 0, skipped = 0;
+      for (const item of incoming) {
+        if (!item.name || !item.expr) { skipped++; continue; }
+        if (existingNames.has(item.name)) { skipped++; continue; }
+        derivedCols.push({ name: item.name, expr: item.expr });
+        existingNames.add(item.name);
+        added++;
+      }
+
+      if (added > 0) {
+        recalcDerived();
+        populateControls();
+        renderFormulaList();
+        updateChart();
+      }
+      alert(`${added}개 수식 추가${skipped ? `, ${skipped}개 건너뜀 (중복 또는 잘못된 항목)` : ''}`);
+    } catch (err) {
+      alert('수식 파일 로드 실패: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
 }
 
 // ---- Column-level functions (LOESS, movavg, etc.) ----
@@ -1583,6 +1784,14 @@ function getFilteredColData(name) {
 }
 
 // ========== UI HELPERS ==========
+function switchYTab(tab) {
+  document.getElementById('y1Panel').classList.toggle('hidden', tab !== 'y1');
+  document.getElementById('y2Panel').classList.toggle('hidden', tab !== 'y2');
+  document.querySelectorAll('.y-axis-tab').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.tab === tab);
+  });
+}
+
 function toggleSection(header) {
   const chevron = header.querySelector('.chevron');
   const body = header.nextElementSibling;
@@ -1624,19 +1833,25 @@ function saveSession() {
     settings: {
       xCol: document.getElementById('xSelect').value,
       yChecked: [...document.querySelectorAll('#yChecklist input:checked')].map(cb => cb.value),
+      y2Checked: [...document.querySelectorAll('#y2Checklist input:checked')].map(cb => cb.value),
       chartType: document.getElementById('chartType').value,
       lineWidth: document.getElementById('lineWidth').value,
       markerSize: document.getElementById('markerSize').value,
       xLog: document.getElementById('xLog').classList.contains('active'),
       yLog: document.getElementById('yLog').classList.contains('active'),
+      y2Log: document.getElementById('y2Log').classList.contains('active'),
       xMin: document.getElementById('xMin').value,
       xMax: document.getElementById('xMax').value,
       yMin: document.getElementById('yMin').value,
       yMax: document.getElementById('yMax').value,
+      y2Min: document.getElementById('y2Min').value,
+      y2Max: document.getElementById('y2Max').value,
       xTick: document.getElementById('xTick').value,
       yTick: document.getElementById('yTick').value,
+      y2Tick: document.getElementById('y2Tick').value,
       xLabel: document.getElementById('xLabel').value,
       yLabel: document.getElementById('yLabel').value,
+      y2Label: document.getElementById('y2Label').value,
       splitEnabled: document.getElementById('splitEnabled').classList.contains('active'),
       splitMode: document.getElementById('splitMode').value,
       splitCol: document.getElementById('splitCol').value,
@@ -1687,14 +1902,19 @@ function loadSession(input) {
       const defaults = {
         xCol: columns[0] || '',
         yChecked: [],
+        y2Checked: [],
         chartType: 'lines',
         lineWidth: '2',
         markerSize: '4',
         xLog: false,
         yLog: false,
+        y2Log: false,
         xMin: '', xMax: '', yMin: '', yMax: '',
+        y2Min: '', y2Max: '',
         xTick: '', yTick: '',
+        y2Tick: '',
         xLabel: '', yLabel: '',
+        y2Label: '',
         splitEnabled: false,
         splitMode: 'period',
         splitCol: '',
@@ -1718,10 +1938,16 @@ function loadSession(input) {
       // X axis
       document.getElementById('xSelect').value = st.xCol;
 
-      // Y checked
+      // Y1 checked
       const ySet = new Set(st.yChecked);
       document.querySelectorAll('#yChecklist input[type="checkbox"]').forEach(cb => {
         cb.checked = ySet.has(cb.value);
+      });
+
+      // Y2 checked
+      const y2Set = new Set(st.y2Checked);
+      document.querySelectorAll('#y2Checklist input[type="checkbox"]').forEach(cb => {
+        cb.checked = y2Set.has(cb.value);
       });
 
       // Chart options
@@ -1732,14 +1958,19 @@ function loadSession(input) {
       // Axis settings
       document.getElementById('xLog').classList.toggle('active', st.xLog);
       document.getElementById('yLog').classList.toggle('active', st.yLog);
+      document.getElementById('y2Log').classList.toggle('active', st.y2Log);
       document.getElementById('xMin').value = st.xMin;
       document.getElementById('xMax').value = st.xMax;
       document.getElementById('yMin').value = st.yMin;
       document.getElementById('yMax').value = st.yMax;
+      document.getElementById('y2Min').value = st.y2Min;
+      document.getElementById('y2Max').value = st.y2Max;
       document.getElementById('xTick').value = st.xTick;
       document.getElementById('yTick').value = st.yTick;
+      document.getElementById('y2Tick').value = st.y2Tick;
       document.getElementById('xLabel').value = st.xLabel;
       document.getElementById('yLabel').value = st.yLabel;
+      document.getElementById('y2Label').value = st.y2Label;
 
       // Split settings
       document.getElementById('splitEnabled').classList.toggle('active', st.splitEnabled);
