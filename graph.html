@@ -115,7 +115,8 @@
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto;
+    overflow-x: hidden;
     position: relative;
   }
   .sidebar-resize-handle {
@@ -140,7 +141,7 @@
     flex-direction: column;
   }
   .sidebar-section.expandable { flex-shrink: 0; }
-  .sidebar-section.y-axis-section { flex: 1; min-height: 0; }
+  .sidebar-section.y-axis-section { flex: 1; min-height: 150px; }
 
   .sidebar-section-header {
     padding: 10px 16px;
@@ -589,11 +590,13 @@
       <input type="file" accept=".csv,.tsv,.txt" id="fileInput" style="display:none">
     </label>
     <button class="btn" id="savePng" disabled>📷 PNG 저장</button>
+    <button class="btn" id="saveTsv" disabled onclick="exportToTsv()" title="현재 플롯 데이터(필터 적용) TSV 저장">📋 TSV 저장</button>
     <button class="btn" onclick="saveSession()" title="현재 설정+데이터를 JSON으로 저장">💾 저장</button>
     <label class="btn" title="저장된 JSON 세션 불러오기">
       📂 불러오기
       <input type="file" accept=".json" id="loadSessionInput" style="display:none" onchange="loadSession(this)">
     </label>
+    <button class="btn" onclick="shuffleColors()" title="컬러 팔레트 랜덤 셔플">🎨</button>
     <button class="btn" id="themeToggle" onclick="toggleTheme()" title="라이트/다크 모드 전환">🌙</button>
   </div>
 </div>
@@ -675,11 +678,11 @@
         <div class="form-row" style="margin-bottom: 10px">
           <div>
             <label class="form-label">X축 라벨</label>
-            <input type="text" id="xLabel" placeholder="auto (컬럼명)">
+            <input type="text" id="xLabel" placeholder="auto (컬럼명)" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
           <div>
             <label class="form-label">Y1축 라벨</label>
-            <input type="text" id="yLabel" placeholder="auto">
+            <input type="text" id="yLabel" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
         </div>
         <div class="toggle-row">
@@ -693,38 +696,38 @@
         <div class="form-row" style="margin-bottom: 10px">
           <div>
             <label class="form-label">X 최소</label>
-            <input type="text" id="xMin" placeholder="auto">
+            <input type="text" id="xMin" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
           <div>
             <label class="form-label">X 최대</label>
-            <input type="text" id="xMax" placeholder="auto">
+            <input type="text" id="xMax" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
         </div>
         <div class="form-row" style="margin-bottom: 10px">
           <div>
             <label class="form-label">Y1 최소</label>
-            <input type="text" id="yMin" placeholder="auto">
+            <input type="text" id="yMin" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
           <div>
             <label class="form-label">Y1 최대</label>
-            <input type="text" id="yMax" placeholder="auto">
+            <input type="text" id="yMax" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
         </div>
         <div class="form-row" style="margin-bottom: 10px">
           <div>
             <label class="form-label">X축 눈금 주기</label>
-            <input type="text" id="xTick" placeholder="auto">
+            <input type="text" id="xTick" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
           <div>
             <label class="form-label">Y1축 눈금 주기</label>
-            <input type="text" id="yTick" placeholder="auto">
+            <input type="text" id="yTick" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
         </div>
         <div style="border-top: 1px solid var(--border); margin: 8px 0; padding-top: 8px">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-dim);margin-bottom:8px">Y2 (Right Axis)</div>
           <div class="form-group">
             <label class="form-label">Y2축 라벨</label>
-            <input type="text" id="y2Label" placeholder="auto">
+            <input type="text" id="y2Label" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
           <div class="toggle-row">
             <span>Y2축 Log 스케일</span>
@@ -733,16 +736,16 @@
           <div class="form-row" style="margin-bottom: 10px">
             <div>
               <label class="form-label">Y2 최소</label>
-              <input type="text" id="y2Min" placeholder="auto">
+              <input type="text" id="y2Min" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
             </div>
             <div>
               <label class="form-label">Y2 최대</label>
-              <input type="text" id="y2Max" placeholder="auto">
+              <input type="text" id="y2Max" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
             </div>
           </div>
           <div class="form-group">
             <label class="form-label">Y2축 눈금 주기</label>
-            <input type="text" id="y2Tick" placeholder="auto">
+            <input type="text" id="y2Tick" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
         </div>
         <button class="btn btn-sm" style="width:100%" onclick="applyAxisSettings()">적용</button>
@@ -797,7 +800,7 @@
         <div class="form-group">
           <label class="form-label">차트 유형</label>
           <select id="chartType">
-            <option value="scatter">Scatter (점)</option>
+            <option value="markers">Scatter (점)</option>
             <option value="lines" selected>Line (선)</option>
             <option value="lines+markers">Line + Markers</option>
             <option value="bar">Bar (막대)</option>
@@ -810,6 +813,27 @@
         <div class="form-group">
           <label class="form-label">마커 크기</label>
           <input type="number" id="markerSize" value="4" min="1" max="20" step="1">
+        </div>
+        <div style="border-top: 1px solid var(--border); margin: 8px 0; padding-top: 8px">
+          <div class="toggle-row">
+            <span>Smoothing Overlay</span>
+            <div class="toggle" id="smoothEnabled" onclick="toggleSwitch(this)"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">방법</label>
+            <select id="smoothMethod" onchange="onSmoothMethodChange()">
+              <option value="loess">LOESS</option>
+              <option value="movavg">Moving Average</option>
+              <option value="ema">EMA</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              파라미터
+              <span class="tooltip-help" data-tip="LOESS: span (0~1, default 0.25)&#10;MovAvg: window size (정수, default 10)&#10;EMA: alpha (0~1, default 0.1)">ⓘ</span>
+            </label>
+            <input type="number" id="smoothParam" value="0.25" min="0.001" step="any" onkeydown="if(event.key==='Enter') updateChart()">
+          </div>
         </div>
         <button class="btn btn-sm" style="width:100%" onclick="updateChart()">적용</button>
       </div>
@@ -867,12 +891,43 @@ let derivedCols = [];    // [{ name, expr }]
 let filters = [];        // [{ expr, enabled, id }]
 let filterIdCounter = 0;
 let filteredIndices = null; // null = no filter, array of row indices that pass
-const COLORS = [
+let COLORS = [
   '#6c8cff','#ff6b6b','#51cf66','#ffd43b','#cc5de8',
   '#20c997','#ff922b','#66d9e8','#f06595','#a9e34b',
   '#d0bfff','#ffa94d','#63e6be','#e599f7','#74c0fc',
   '#ffe066','#8ce99a','#ffc9c9','#b2f2bb','#d8f5a2',
 ];
+
+function shuffleColors() {
+  function hslToHex(h, s, l) {
+    s /= 100; l /= 100;
+    const a = s * Math.min(l, 1 - l);
+    const f = n => { const k = (n + h / 30) % 12; return l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1); };
+    return '#' + [f(0), f(8), f(4)].map(v => Math.round(v * 255).toString(16).padStart(2, '0')).join('');
+  }
+  const count = COLORS.length;
+  const hueStart = Math.random() * 360;
+  const newColors = [];
+  for (let i = 0; i < count; i++) {
+    const h = (hueStart + i * (360 / count) + (Math.random() - 0.5) * 20) % 360;
+    const s = 55 + Math.random() * 30;
+    const l = 50 + Math.random() * 15;
+    newColors.push(hslToHex(h, s, l));
+  }
+  for (let i = newColors.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [newColors[i], newColors[j]] = [newColors[j], newColors[i]];
+  }
+  COLORS = newColors;
+  if (columns.length) {
+    const y1Checked = new Set([...document.querySelectorAll('#yChecklist input:checked')].map(cb => cb.value));
+    const y2Checked = new Set([...document.querySelectorAll('#y2Checklist input:checked')].map(cb => cb.value));
+    populateControls();
+    document.querySelectorAll('#yChecklist input[type="checkbox"]').forEach(cb => { cb.checked = y1Checked.has(cb.value); });
+    document.querySelectorAll('#y2Checklist input[type="checkbox"]').forEach(cb => { cb.checked = y2Checked.has(cb.value); });
+    updateChart();
+  }
+}
 
 // ========== FILE HANDLING ==========
 const fileInput = document.getElementById('fileInput');
@@ -949,6 +1004,7 @@ function parseData(text, fname) {
   document.getElementById('statusRows').textContent = `${rowCount.toLocaleString()} 행`;
   document.getElementById('statusCols').textContent = `${columns.length} 컬럼`;
   document.getElementById('savePng').disabled = false;
+  document.getElementById('saveTsv').disabled = false;
   document.getElementById('emptyState')?.remove();
 
   // Re-apply existing filters to new data
@@ -1184,6 +1240,54 @@ function buildTraces(colList, xData, xCol, axisKey, chartType, lineWidth, marker
   return traces;
 }
 
+function buildSmoothingTraces(scatterTraces, method, param, lw) {
+  const result = [];
+  for (const trace of scatterTraces) {
+    if (!trace.x || !trace.y || trace.x.length < 2) continue;
+
+    const pairs = [];
+    for (let i = 0; i < trace.x.length; i++) {
+      const xv = trace.x[i], yv = trace.y[i];
+      if (typeof xv === 'number' && isFinite(xv) && typeof yv === 'number' && isFinite(yv)) {
+        pairs.push([xv, yv]);
+      }
+    }
+    if (pairs.length < 2) continue;
+    pairs.sort((a, b) => a[0] - b[0]);
+
+    const sx = pairs.map(p => p[0]);
+    const sy = pairs.map(p => p[1]);
+
+    let smoothed;
+    switch (method) {
+      case 'loess':  smoothed = computeLoess(sy, sx, param || 0.25); break;
+      case 'movavg': smoothed = computeMovAvg(sy, Math.round(param) || 10); break;
+      case 'ema':    smoothed = computeEma(sy, param || 0.1); break;
+      default: continue;
+    }
+
+    const color = trace.marker?.color || trace.line?.color || '#888';
+    const st = {
+      x: sx, y: smoothed,
+      name: `${trace.name} (${method})`,
+      type: 'scattergl', mode: 'lines',
+      line: { color, width: lw + 1 },
+      legendgroup: trace.legendgroup || trace.name,
+      showlegend: true,
+    };
+    if (trace.yaxis) st.yaxis = trace.yaxis;
+    result.push(st);
+  }
+  return result;
+}
+
+const SMOOTH_DEFAULTS = { loess: 0.25, movavg: 10, ema: 0.1 };
+function onSmoothMethodChange() {
+  const m = document.getElementById('smoothMethod').value;
+  document.getElementById('smoothParam').value = SMOOTH_DEFAULTS[m] ?? 0.25;
+  if (document.getElementById('smoothEnabled').classList.contains('active')) updateChart();
+}
+
 function updateChart() {
   const xCol = document.getElementById('xSelect').value;
   if (!xCol) return;
@@ -1215,6 +1319,14 @@ function updateChart() {
   const y1Traces = buildTraces(y1Cols, xData, xCol, null, chartType, lineWidth, markerSize, allCols, splitOn, splitModeVal, splitPeriod, splitOffset, splitColName, splitData);
   const y2Traces = buildTraces(y2Cols, xData, xCol, 'y2', chartType, lineWidth, markerSize, allCols, splitOn, splitModeVal, splitPeriod, splitOffset, splitColName, splitData);
   const traces = [...y1Traces, ...y2Traces];
+
+  const smoothOn = document.getElementById('smoothEnabled').classList.contains('active');
+  if (smoothOn) {
+    const smoothMethod = document.getElementById('smoothMethod').value;
+    const smoothParam = parseFloat(document.getElementById('smoothParam').value);
+    traces.push(...buildSmoothingTraces(y1Traces, smoothMethod, smoothParam, lineWidth));
+    traces.push(...buildSmoothingTraces(y2Traces, smoothMethod, smoothParam, lineWidth));
+  }
 
   const xLog = document.getElementById('xLog').classList.contains('active');
   const yLog = document.getElementById('yLog').classList.contains('active');
@@ -1783,6 +1895,30 @@ function getFilteredColData(name) {
   return filteredIndices.map(i => full[i]);
 }
 
+function exportToTsv() {
+  const allCols = getAllColumns();
+  if (!allCols.length) return alert('저장할 데이터가 없습니다.');
+  const indices = filteredIndices ?? Array.from({ length: rawData[columns[0]]?.length || 0 }, (_, i) => i);
+  if (indices.length === 0) return alert('표시 중인 행이 없습니다.');
+
+  const header = allCols.join('\t');
+  const rows = indices.map(i => {
+    return allCols.map(c => {
+      const v = getColData(c)[i];
+      if (v == null) return '';
+      const s = String(v);
+      return s.includes('\t') || s.includes('\n') || s.includes('"') ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }).join('\t');
+  });
+  const tsv = header + '\n' + rows.join('\n');
+  const blob = new Blob([tsv], { type: 'text/tab-separated-values;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (fileName ? fileName.replace(/\.[^.]+$/, '') : 'export') + '.tsv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
 // ========== UI HELPERS ==========
 function switchYTab(tab) {
   document.getElementById('y1Panel').classList.toggle('hidden', tab !== 'y1');
@@ -1857,6 +1993,9 @@ function saveSession() {
       splitCol: document.getElementById('splitCol').value,
       splitPeriod: document.getElementById('splitPeriod').value,
       splitOffset: document.getElementById('splitOffset').value,
+      smoothEnabled: document.getElementById('smoothEnabled').classList.contains('active'),
+      smoothMethod: document.getElementById('smoothMethod').value,
+      smoothParam: document.getElementById('smoothParam').value,
       theme: document.documentElement.classList.contains('light') ? 'light' : 'dark',
       sidebarWidth: document.getElementById('sidebar').style.width || '',
     },
@@ -1920,6 +2059,9 @@ function loadSession(input) {
         splitCol: '',
         splitPeriod: '',
         splitOffset: '0',
+        smoothEnabled: false,
+        smoothMethod: 'loess',
+        smoothParam: '0.25',
         theme: 'dark',
         sidebarWidth: '',
       };
@@ -1980,6 +2122,11 @@ function loadSession(input) {
       document.getElementById('splitPeriod').value = st.splitPeriod;
       document.getElementById('splitOffset').value = st.splitOffset;
 
+      // Smoothing settings
+      document.getElementById('smoothEnabled').classList.toggle('active', st.smoothEnabled);
+      document.getElementById('smoothMethod').value = st.smoothMethod;
+      document.getElementById('smoothParam').value = st.smoothParam;
+
       // Sidebar width
       if (st.sidebarWidth) document.getElementById('sidebar').style.width = st.sidebarWidth;
 
@@ -1989,6 +2136,7 @@ function loadSession(input) {
       document.getElementById('statusRows').textContent = `${rowCount.toLocaleString()} 행`;
       document.getElementById('statusCols').textContent = `${columns.length} 컬럼`;
       document.getElementById('savePng').disabled = false;
+      document.getElementById('saveTsv').disabled = false;
       document.getElementById('emptyState')?.remove();
 
       updateChart();
