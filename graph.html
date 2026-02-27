@@ -591,6 +591,7 @@
     </label>
     <button class="btn" id="savePng" disabled>📷 PNG 저장</button>
     <button class="btn" id="saveTsv" disabled onclick="exportToTsv()" title="현재 플롯 데이터(필터 적용) TSV 저장">📋 TSV 저장</button>
+    <button class="btn" id="saveGnuplot" disabled onclick="exportToGnuplot()" title="gnuplot 호환 형식 (.dat, 헤더는 # 주석)">📋 Gnuplot</button>
     <button class="btn" onclick="saveSession()" title="현재 설정+데이터를 JSON으로 저장">💾 저장</button>
     <label class="btn" title="저장된 JSON 세션 불러오기">
       📂 불러오기
@@ -1005,6 +1006,7 @@ function parseData(text, fname) {
   document.getElementById('statusCols').textContent = `${columns.length} 컬럼`;
   document.getElementById('savePng').disabled = false;
   document.getElementById('saveTsv').disabled = false;
+  document.getElementById('saveGnuplot').disabled = false;
   document.getElementById('emptyState')?.remove();
 
   // Re-apply existing filters to new data
@@ -1915,6 +1917,30 @@ function exportToTsv() {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = (fileName ? fileName.replace(/\.[^.]+$/, '') : 'export') + '.tsv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function exportToGnuplot() {
+  const allCols = getAllColumns();
+  if (!allCols.length) return alert('저장할 데이터가 없습니다.');
+  const indices = filteredIndices ?? Array.from({ length: rawData[columns[0]]?.length || 0 }, (_, i) => i);
+  if (indices.length === 0) return alert('표시 중인 행이 없습니다.');
+
+  const header = '# ' + allCols.join('\t');
+  const rows = indices.map(i => {
+    return allCols.map(c => {
+      const v = getColData(c)[i];
+      if (v == null) return '';
+      const s = String(v);
+      return s.includes('\t') || s.includes('\n') || s.includes('"') ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }).join('\t');
+  });
+  const out = header + '\n' + rows.join('\n');
+  const blob = new Blob([out], { type: 'text/plain;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (fileName ? fileName.replace(/\.[^.]+$/, '') : 'export') + '.dat';
   a.click();
   URL.revokeObjectURL(a.href);
 }
