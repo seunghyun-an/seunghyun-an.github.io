@@ -217,6 +217,21 @@
   }
   .y-panel.hidden { display: none; }
 
+  .ref-line-list { display: flex; flex-direction: column; gap: 4px; }
+  .ref-line-empty { font-size: 12px; color: var(--text-dim); padding: 8px 0; }
+  .ref-line-item {
+    display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px;
+    font-size: 13px; cursor: pointer; transition: background 0.12s;
+  }
+  .ref-line-item:hover { background: var(--surface2); }
+  .ref-line-item input[type="checkbox"] { display: none; }
+  .ref-line-item .check-mark { width: 16px; height: 16px; border-radius: 4px; border: 2px solid var(--border); flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .ref-line-item input:checked + .check-mark { border-color: var(--accent); background: var(--accent); }
+  .ref-line-item input:checked + .check-mark::after { content: '✓'; color: #fff; font-size: 11px; font-weight: 700; }
+  .ref-line-item .ref-label { flex: 1; font-family: monospace; }
+  .ref-line-item .remove { cursor: pointer; color: var(--text-dim); flex-shrink: 0; }
+  .ref-line-item .remove:hover { color: var(--danger); }
+
   /* Form controls */
   select, input[type="text"], input[type="number"] {
     width: 100%;
@@ -671,6 +686,18 @@
       </div>
     </div>
 
+    <!-- Reference lines -->
+    <div class="sidebar-section expandable">
+      <div class="sidebar-section-header" onclick="toggleSection(this)">
+        보조선 <span class="chevron collapsed">▼</span>
+      </div>
+      <div class="sidebar-section-body collapsed-body">
+        <div class="ref-line-list" id="refLineList">
+          <div class="ref-line-empty" id="refLineEmpty">x = 1, y = 3 등을 파생 수식에 추가</div>
+        </div>
+      </div>
+    </div>
+
     <!-- Axis settings -->
     <div class="sidebar-section expandable">
       <div class="sidebar-section-header" onclick="toggleSection(this)">
@@ -695,6 +722,7 @@
           <span>Y1축 Log 스케일</span>
           <div class="toggle" id="yLog" onclick="toggleSwitch(this)"></div>
         </div>
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px">Log 시 최소/최대 = 실제값 (예: 0.1, 1000)</div>
         <div class="form-row" style="margin-bottom: 10px">
           <div>
             <label class="form-label">X 최소</label>
@@ -857,7 +885,7 @@
       <div class="formula-bar-header">
         <span>
           파생 데이터 수식
-          <span class="tooltip-help" data-tip="수식에서 컬럼명을 사용하세요.&#10;예: col_A * 2 + col_B&#10;&#10;수학: sin, cos, sqrt, abs, log, pow, ...&#10;&#10;컬럼 함수:&#10;  loess(col, 0.25) — LOESS 평활화&#10;  movavg(col, 10) — 이동평균&#10;  ema(col, 0.1) — 지수이동평균&#10;  diff(col) — 차분 (전행 대비 변화)&#10;  cumsum(col) — 누적합">ⓘ</span>
+          <span class="tooltip-help" data-tip="수식에서 컬럼명을 사용하세요.&#10;예: col_A * 2 + col_B&#10;&#10;보조선: x = 1, y = 3 (직선, 데이터 선택에서 on/off)&#10;&#10;수학: sin, cos, sqrt, abs, log, pow, ...&#10;&#10;컬럼 함수:&#10;  loess(col, 0.25) — LOESS 평활화&#10;  movavg(col, 10) — 이동평균&#10;  ema(col, 0.1) — 지수이동평균&#10;  diff(col) — 차분 (전행 대비 변화)&#10;  cumsum(col) — 누적합">ⓘ</span>
         </span>
         <span style="display:flex;gap:6px">
           <button class="btn btn-sm" onclick="exportFormulas()" title="파생 수식만 JSON으로 내보내기">📤 Export</button>
@@ -869,7 +897,7 @@
       </div>
       <div class="formula-input-row">
         <input type="text" id="formulaName" placeholder="새 컬럼명">
-        <input type="text" id="formulaExpr" placeholder="수식: col_A * 2 + sin(col_B)">
+        <input type="text" id="formulaExpr" placeholder="수식 또는 보조선: x = 1, y = 3">
         <button class="btn btn-sm btn-primary" id="addFormulaBtn" onclick="addFormula()">추가</button>
       </div>
       <div class="formula-list" id="formulaList"></div>
@@ -890,6 +918,7 @@ let rawData = {};        // { colName: [values...] }
 let columns = [];
 let fileName = '';
 let derivedCols = [];    // [{ name, expr }]
+let referenceLines = []; // [{ type: 'x'|'y', value: number, name: string, enabled: bool, axis?: 'y'|'y2' }]
 let filters = [];        // [{ expr, enabled, id }]
 let filterIdCounter = 0;
 let filteredIndices = null; // null = no filter, array of row indices that pass
@@ -1383,24 +1412,33 @@ function updateChart() {
   const xTick = document.getElementById('xTick').value;
   const yTick = document.getElementById('yTick').value;
 
+  const toLogIf = (v, useLog) => {
+    if (v === '' || v == null) return null;
+    const n = Number(v);
+    if (isNaN(n)) return null;
+    if (!useLog) return n;
+    if (n <= 0) return null;
+    return Math.log10(n);
+  };
+
   if (xMinVal !== '' || xMaxVal !== '') {
     const nums = xData.filter(v => typeof v === 'number' && isFinite(v));
-    const autoMin = nums.length ? Math.min(...nums) : 0;
-    const autoMax = nums.length ? Math.max(...nums) : 1;
-    layout.xaxis.range = [
-      xMinVal !== '' ? Number(xMinVal) : autoMin,
-      xMaxVal !== '' ? Number(xMaxVal) : autoMax,
-    ];
+    const numsPos = nums.filter(v => v > 0);
+    const autoMin = xLog ? (numsPos.length ? Math.log10(Math.min(...numsPos)) : 0) : (nums.length ? Math.min(...nums) : 0);
+    const autoMax = xLog ? (numsPos.length ? Math.log10(Math.max(...numsPos)) : 1) : (nums.length ? Math.max(...nums) : 1);
+    const rmin = toLogIf(xMinVal, xLog) ?? autoMin;
+    const rmax = toLogIf(xMaxVal, xLog) ?? autoMax;
+    layout.xaxis.range = [rmin, rmax];
     layout.xaxis.autorange = false;
   }
   if (yMinVal !== '' || yMaxVal !== '') {
     const allY1Nums = y1Cols.flatMap(yCol => getFilteredColData(yCol).filter(v => typeof v === 'number' && isFinite(v)));
-    const autoMin = allY1Nums.length ? Math.min(...allY1Nums) : 0;
-    const autoMax = allY1Nums.length ? Math.max(...allY1Nums) : 1;
-    layout.yaxis.range = [
-      yMinVal !== '' ? Number(yMinVal) : autoMin,
-      yMaxVal !== '' ? Number(yMaxVal) : autoMax,
-    ];
+    const allY1Pos = allY1Nums.filter(v => v > 0);
+    const autoMin = yLog ? (allY1Pos.length ? Math.log10(Math.min(...allY1Pos)) : 0) : (allY1Nums.length ? Math.min(...allY1Nums) : 0);
+    const autoMax = yLog ? (allY1Pos.length ? Math.log10(Math.max(...allY1Pos)) : 1) : (allY1Nums.length ? Math.max(...allY1Nums) : 1);
+    const rmin = toLogIf(yMinVal, yLog) ?? autoMin;
+    const rmax = toLogIf(yMaxVal, yLog) ?? autoMax;
+    layout.yaxis.range = [rmin, rmax];
     layout.yaxis.autorange = false;
   }
   if (xTick) layout.xaxis.dtick = Number(xTick);
@@ -1413,16 +1451,35 @@ function updateChart() {
     const y2Tick = document.getElementById('y2Tick').value;
     if (y2MinVal !== '' || y2MaxVal !== '') {
       const allY2Nums = y2Cols.flatMap(yCol => getFilteredColData(yCol).filter(v => typeof v === 'number' && isFinite(v)));
-      const autoMin = allY2Nums.length ? Math.min(...allY2Nums) : 0;
-      const autoMax = allY2Nums.length ? Math.max(...allY2Nums) : 1;
-      layout.yaxis2.range = [
-        y2MinVal !== '' ? Number(y2MinVal) : autoMin,
-        y2MaxVal !== '' ? Number(y2MaxVal) : autoMax,
-      ];
+      const allY2Pos = allY2Nums.filter(v => v > 0);
+      const autoMin = y2Log ? (allY2Pos.length ? Math.log10(Math.min(...allY2Pos)) : 0) : (allY2Nums.length ? Math.min(...allY2Nums) : 0);
+      const autoMax = y2Log ? (allY2Pos.length ? Math.log10(Math.max(...allY2Pos)) : 1) : (allY2Nums.length ? Math.max(...allY2Nums) : 1);
+      const rmin = toLogIf(y2MinVal, y2Log) ?? autoMin;
+      const rmax = toLogIf(y2MaxVal, y2Log) ?? autoMax;
+      layout.yaxis2.range = [rmin, rmax];
       layout.yaxis2.autorange = false;
     }
     if (y2Tick) layout.yaxis2.dtick = Number(y2Tick);
   }
+
+  // Reference lines (layout.shapes)
+  const refShapes = [];
+  for (const r of referenceLines) {
+    if (!r.enabled) continue;
+    if (r.type === 'x') {
+      const x = r.value;
+      if (xLog && x <= 0) continue;
+      const xlog = xLog ? Math.log10(x) : x;
+      refShapes.push({ type: 'line', x0: xlog, x1: xlog, y0: 0, y1: 1, yref: 'paper', line: { color: css('--text-dim'), width: 1, dash: 'dot' } });
+    } else {
+      const y = r.value;
+      const yref = (r.axis === 'y2' && hasY2) ? 'y2' : 'y';
+      if ((yref === 'y2' ? y2Log : yLog) && y <= 0) continue;
+      const ylog = (yref === 'y2' ? y2Log : yLog) ? Math.log10(y) : y;
+      refShapes.push({ type: 'line', x0: 0, x1: 1, xref: 'paper', y0: ylog, y1: ylog, yref, line: { color: css('--text-dim'), width: 1, dash: 'dot' } });
+    }
+  }
+  if (refShapes.length) layout.shapes = refShapes;
 
   const config = {
     responsive: true,
@@ -1443,12 +1500,32 @@ function onSplitModeChange() {
 }
 
 // ========== FORMULA ENGINE ==========
+function parseRefLine(expr) {
+  const m = expr.match(/^\s*(x|y2?)\s*=\s*(-?[\d.]+)\s*$/i);
+  if (!m) return null;
+  const t = m[1].toLowerCase();
+  return { type: t === 'x' ? 'x' : 'y', value: parseFloat(m[2]), name: expr.trim(), axis: t === 'y2' ? 'y2' : 'y' };
+}
+
 function addFormula() {
   const nameInput = document.getElementById('formulaName');
   const exprInput = document.getElementById('formulaExpr');
-  const name = nameInput.value.trim();
   const expr = exprInput.value.trim();
-  if (!name || !expr) return alert('컬럼명과 수식을 모두 입력하세요.');
+  if (!expr) return alert('수식을 입력하세요.');
+
+  const ref = parseRefLine(expr);
+  if (ref) {
+    if (referenceLines.some(r => r.name === ref.name)) return alert('이미 같은 보조선이 있습니다.');
+    referenceLines.push({ ...ref, enabled: true });
+    nameInput.value = '';
+    exprInput.value = '';
+    renderReferenceLineList();
+    updateChart();
+    return;
+  }
+
+  const name = nameInput.value.trim() || expr.slice(0, 20);
+  if (!name) return alert('컬럼명을 입력하세요.');
   if (columns.includes(name)) return alert('기존 컬럼명과 중복됩니다.');
   if (derivedCols.some(d => d.name === name)) return alert('이미 같은 이름의 파생 컬럼이 존재합니다.');
 
@@ -1468,6 +1545,35 @@ function removeFormula(name) {
   populateControls();
   renderFormulaList();
   updateChart();
+}
+
+function toggleReferenceLine(name) {
+  const r = referenceLines.find(r => r.name === name);
+  if (r) r.enabled = !r.enabled;
+  renderReferenceLineList();
+  updateChart();
+}
+
+function removeReferenceLine(name) {
+  referenceLines = referenceLines.filter(r => r.name !== name);
+  renderReferenceLineList();
+  updateChart();
+}
+
+function renderReferenceLineList() {
+  const list = document.getElementById('refLineList');
+  if (referenceLines.length === 0) {
+    list.innerHTML = '<div class="ref-line-empty" id="refLineEmpty">x = 1, y = 3 등을 파생 수식에 추가</div>';
+    return;
+  }
+  list.innerHTML = referenceLines.map(r => `
+    <label class="ref-line-item" data-name="${esc(r.name)}">
+      <input type="checkbox" ${r.enabled ? 'checked' : ''} onchange="toggleReferenceLine('${r.name.replace(/'/g, "\\'")}')">
+      <span class="check-mark"></span>
+      <span class="ref-label">${esc(r.name)}</span>
+      <span class="remove" onclick="event.stopPropagation();removeReferenceLine('${r.name.replace(/'/g, "\\'")}')">&times;</span>
+    </label>
+  `).join('');
 }
 
 function renderFormulaList() {
@@ -1998,6 +2104,7 @@ function saveSession() {
     columns,
     rawData,
     derivedCols: derivedCols.map(d => ({ name: d.name, expr: d.expr })),
+    referenceLines: referenceLines.map(r => ({ ...r })),
     filters: filters.map(f => ({ expr: f.expr, enabled: f.enabled })),
     settings: {
       xCol: document.getElementById('xSelect').value,
@@ -2065,6 +2172,10 @@ function loadSession(input) {
       filters = (s.filters || []).map(f => ({ expr: f.expr, enabled: f.enabled, id: ++filterIdCounter }));
       applyFilters();
       renderFilterList();
+
+      // Restore reference lines
+      referenceLines = (s.referenceLines || []).map(r => ({ type: r.type, value: r.value, name: r.name, enabled: r.enabled !== false, axis: r.axis || 'y' }));
+      renderReferenceLineList();
 
       // Populate UI controls
       populateControls();
