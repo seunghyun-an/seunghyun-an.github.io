@@ -144,6 +144,18 @@
     margin-top: 8px;
   }
 
+  .transpose-opt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--text-dim);
+    user-select: none;
+  }
+  .transpose-opt:hover { color: var(--text); }
+  .transpose-opt input { cursor: pointer; }
+
   .error-msg {
     color: #ff6b6b;
     font-size: 12px;
@@ -182,6 +194,10 @@
 
     <div class="convert-zone">
       <button class="btn btn-primary" id="btnConvert">⇄ 변환</button>
+      <label class="transpose-opt" title="행과 열을 바꿉니다">
+        <input type="checkbox" id="chkTranspose">
+        <span>🔄 표 전치</span>
+      </label>
       <button class="btn" id="btnSwap">↕ 입력↔출력</button>
     </div>
 
@@ -219,25 +235,16 @@
   const inputStats = document.getElementById('inputStats');
   const outputStats = document.getElementById('outputStats');
 
-  // Paste handler: extract plain text when paste contains HTML (e.g. from Excel)
+  // Paste handler: HTML에 <table>이 있을 때만 추출하여 삽입. (Excel 등)
+  // VSCode는 text/html+text/plain 둘 다 넣는데, HTML에 table이 없어 extractTableFromHtml이
+  // null이면 preventDefault 안 하므로 기본 paste(text/plain)가 그대로 동작.
   inputEl.addEventListener('paste', function(e) {
-    const items = e.clipboardData?.items;
-    if (!items) return;
-    for (let i = 0; i < items.length; i++) {
-      if (items[i].type === 'text/html') {
-        e.preventDefault();
-        items[i].getAsString(function(html) {
-          const text = extractTableFromHtml(html);
-          if (text) {
-            document.execCommand('insertText', false, text);
-          }
-        });
-        return;
-      }
-      if (items[i].type === 'text/plain') {
-        // Let default paste happen for plain text
-        return;
-      }
+    const html = e.clipboardData?.getData('text/html');
+    if (!html) return;
+    const text = extractTableFromHtml(html);
+    if (text) {
+      e.preventDefault();
+      document.execCommand('insertText', false, text);
     }
   });
 
@@ -363,6 +370,16 @@
     return toTsv(rows);
   }
 
+  function transposeRows(rows) {
+    if (!rows.length) return rows;
+    const maxCols = Math.max.apply(null, rows.map(function(r) { return r.length; }));
+    const result = [];
+    for (let c = 0; c < maxCols; c++) {
+      result.push(rows.map(function(r) { return r[c] ?? ''; }));
+    }
+    return result;
+  }
+
   function updateStats(el, text, label) {
     if (!text.trim()) {
       el.textContent = '';
@@ -384,11 +401,14 @@
     try {
       const inputFmt = inputFormatEl.value;
       const outputFmt = outputFormatEl.value;
-      const rows = parse(text, inputFmt);
+      let rows = parse(text, inputFmt);
       if (!rows.length) {
         outputEl.value = '';
         outputStats.textContent = '';
         return;
+      }
+      if (document.getElementById('chkTranspose').checked) {
+        rows = transposeRows(rows);
       }
       const result = convert(rows, outputFmt);
       outputEl.value = result;
@@ -400,6 +420,7 @@
     }
   }
 
+  document.getElementById('chkTranspose').addEventListener('change', doConvert);
   btnConvert.addEventListener('click', doConvert);
   inputEl.addEventListener('input', doConvert);
   inputFormatEl.addEventListener('change', doConvert);

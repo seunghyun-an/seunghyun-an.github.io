@@ -636,6 +636,18 @@
       </div>
     </div>
 
+    <!-- Transpose -->
+    <div class="sidebar-section expandable">
+      <div class="sidebar-section-header" onclick="toggleSection(this)">
+        데이터 변환
+        <span class="tooltip-help" data-tip="표 전치: 행과 열을 바꿉니다.&#10;시리즈가 열에 있는 데이터를 행 기준으로 보거나 그 반대에 유용합니다.">ⓘ</span>
+        <span class="chevron collapsed">▼</span>
+      </div>
+      <div class="sidebar-section-body collapsed-body">
+        <button class="btn btn-sm" id="btnTranspose" disabled onclick="transposeData()" title="행↔열 전치">🔄 표 전치 (Transpose)</button>
+      </div>
+    </div>
+
     <!-- Data Filter -->
     <div class="sidebar-section expandable">
       <div class="sidebar-section-header" onclick="toggleSection(this)">
@@ -1005,6 +1017,47 @@ function detectDelimiter(text) {
   return tabs > commas ? '\t' : ',';
 }
 
+function transposeData() {
+  if (!columns.length) return;
+  const rowCount = rawData[columns[0]]?.length || 0;
+  if (rowCount === 0) return;
+
+  // First column values as new column names; ensure uniqueness
+  const firstCol = rawData[columns[0]];
+  const seen = new Set();
+  const newColumns = firstCol.map((v, i) => {
+    const s = String(v ?? '');
+    let name = s || `Row_${i}`;
+    if (seen.has(name)) {
+      let k = 1;
+      while (seen.has(name + '_' + k)) k++;
+      name = name + '_' + k;
+    }
+    seen.add(name);
+    return name;
+  });
+
+  const newRawData = {};
+  newColumns.forEach((nc, rowIdx) => {
+    newRawData[nc] = columns.map((c, colIdx) => rawData[c][rowIdx]);
+  });
+
+  columns = newColumns;
+  rawData = newRawData;
+
+  derivedCols = [];
+  filters = [];
+  filteredIndices = null;
+  recalcDerived();
+  populateControls();
+  renderFormulaList();
+  renderFilterList();
+  applyFilters();
+  document.getElementById('statusRows').textContent = `${rawData[columns[0]]?.length || 0} 행`;
+  document.getElementById('statusCols').textContent = `${columns.length} 컬럼`;
+  updateChart();
+}
+
 function parseData(text, fname) {
   const delimiter = detectDelimiter(text);
   const lines = text.trim().split('\n');
@@ -1038,6 +1091,7 @@ function parseData(text, fname) {
   document.getElementById('saveTsv').disabled = false;
   document.getElementById('copyTsv').disabled = false;
   document.getElementById('saveGnuplot').disabled = false;
+  document.getElementById('btnTranspose').disabled = false;
   document.getElementById('emptyState')?.remove();
 
   // Re-apply existing filters to new data
@@ -2280,6 +2334,9 @@ function loadSession(input) {
       document.getElementById('statusCols').textContent = `${columns.length} 컬럼`;
       document.getElementById('savePng').disabled = false;
       document.getElementById('saveTsv').disabled = false;
+      document.getElementById('copyTsv').disabled = false;
+      document.getElementById('saveGnuplot').disabled = false;
+      document.getElementById('btnTranspose').disabled = false;
       document.getElementById('emptyState')?.remove();
 
       updateChart();
