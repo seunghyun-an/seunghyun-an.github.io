@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Image Preview - Grayscale (프린트 확인용)</title>
+<title>Image Preview - Grayscale (for print)</title>
 <style>
   :root {
     --bg: #0f1117;
@@ -16,6 +16,17 @@
     --accent-hover: #8da6ff;
     --accent-bg: rgba(108,140,255,0.12);
     --radius: 8px;
+  }
+  :root.light {
+    --bg: #f5f6fa;
+    --surface: #ffffff;
+    --surface2: #eef0f6;
+    --border: #d8dbe6;
+    --text: #1a1d27;
+    --text-dim: #6b7085;
+    --accent: #4a6cf7;
+    --accent-hover: #3855d4;
+    --accent-bg: rgba(74,108,247,0.1);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -85,7 +96,7 @@
     color: var(--text-dim);
   }
   .preview-panel .img-wrap {
-    background: #111;
+    background: var(--surface2);
     border-radius: 4px;
     display: flex;
     align-items: center;
@@ -105,43 +116,226 @@
     flex-shrink: 1;
     display: block;
   }
+  .preview-panel .img-wrap.img-pickable { position: relative; cursor: crosshair; }
+  .color-picker-tooltip {
+    position: fixed;
+    z-index: 100;
+    padding: 6px 10px;
+    border-radius: 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    font-size: 12px;
+    font-family: monospace;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: none;
+    box-shadow: var(--shadow, 0 2px 8px rgba(0,0,0,0.3));
+  }
+  .color-picker-tooltip .swatch {
+    width: 16px;
+    height: 16px;
+    border-radius: 2px;
+    border: 1px solid var(--border);
+  }
+  .color-picker-tooltip .hint { font-size: 10px; color: var(--text-dim); }
 
   .empty-state {
     color: var(--text-dim);
     padding: 40px;
   }
+
+  .color-tools {
+    margin-top: 28px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+  .color-tools h3 {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  .color-tools-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+  @media (max-width: 700px) { .color-tools-grid { grid-template-columns: 1fr; } }
+  .color-tools .base-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .color-tools .base-row .swatch {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .color-tools .base-row input[type="text"] {
+    width: 100px;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface2);
+    color: var(--text);
+    font-family: monospace;
+    font-size: 13px;
+  }
+  .color-tools .base-row .hint {
+    font-size: 12px;
+    color: var(--text-dim);
+  }
+  .color-tools .tool-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+  }
+  .color-tools .tool-card h4 {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+  .color-tools .tool-card .out-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+  }
+  .color-tools .tool-card .out-row .swatch {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+  }
+  .color-tools .tool-card .out-row .hex {
+    font-family: monospace;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .color-tools .tool-card label {
+    display: block;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 8px;
+    margin-bottom: 4px;
+  }
+  .color-tools .tool-card input[type="range"] {
+    width: 100%;
+    margin: 4px 0;
+  }
+
+  .palette-section { margin-top: 24px; }
+  .palette-section h4 {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+  }
+  .palette-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+  }
+  .palette-swatch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: var(--radius);
+    transition: background 0.15s;
+  }
+  .palette-swatch:hover { background: var(--accent-bg); }
+  .palette-swatch .box {
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+  }
+  .palette-swatch .label { font-size: 10px; color: var(--text-dim); }
+  .palette-swatch .hex { font-size: 11px; font-family: monospace; }
 </style>
 </head>
 <body>
 <div class="container">
-  <h1><a href="index.html" style="color:var(--text-dim);text-decoration:none;font-size:14px;margin-right:12px" title="Back to main site">← Home</a>Image Preview — Grayscale</h1>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:8px">
+    <h1 style="margin-bottom:0"><a href="index.html" style="color:var(--text-dim);text-decoration:none;font-size:14px;margin-right:12px" title="Back to main site">← Home</a>Image Preview — Grayscale</h1>
+    <button type="button" id="themeToggle" style="padding:6px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:14px" title="Light/Dark mode">🌙</button>
+  </div>
   <p class="subtitle">
-    이미지를 넣으면 프린트 시 색 구별 여부 확인용으로 Grayscale 미리보기를 보여줍니다.
-    <span class="tip">변환 공식: Y = 0.299R + 0.587G + 0.114B (ITU-R BT.601 / 일반 프린터 grayscale)</span>
+    Paste or drop an image to see a grayscale preview for checking how colors will look when printed.
+    <span class="tip">Formula: Y = 0.299R + 0.587G + 0.114B (ITU-R BT.601 / typical printer grayscale)</span>
   </p>
 
   <div class="drop-zone" id="dropZone">
     <label>
       <input type="file" id="fileInput" accept="image/*">
-      📁 이미지 선택 또는 여기에 드래그
+      📁 Select image or drag here
     </label>
-    <div class="hint">PNG, JPG, WebP 등 · Ctrl+V로 클립보드 이미지 붙여넣기</div>
+    <div class="hint">PNG, JPG, WebP · Ctrl+V to paste from clipboard</div>
   </div>
 
   <div class="preview-row">
     <div class="preview-panel">
-      <h3>원본 (Original)</h3>
+      <h3>Original <span class="hint" style="font-weight:normal">— hover for color, click to copy hex</span></h3>
       <div class="img-wrap" id="origWrap">
-        <div class="empty-state" id="origEmpty">이미지를 넣어주세요</div>
+        <div class="empty-state" id="origEmpty">Paste or drop an image</div>
       </div>
     </div>
     <div class="preview-panel">
-      <h3>Grayscale (프린트 미리보기)</h3>
+      <h3>Grayscale (print preview)</h3>
       <div class="img-wrap" id="grayWrap">
-        <div class="empty-state" id="grayEmpty">이미지를 넣어주세요</div>
+        <div class="empty-state" id="grayEmpty">Paste or drop an image</div>
       </div>
     </div>
   </div>
+
+  <section class="color-tools" id="colorToolsSection">
+    <h3>Color adjusters</h3>
+    <div class="color-tools-grid">
+      <div class="color-tools-left">
+        <div class="base-row">
+          <span class="swatch" id="baseSwatch" style="background:#808080"></span>
+          <input type="text" id="baseHexInput" value="#808080" placeholder="#RRGGBB" maxlength="7">
+          <span class="hint">Base color: pick from image (click) or enter hex</span>
+        </div>
+        <div class="palette-section">
+          <h4>Palette from base (OKLAB harmony)</h4>
+          <div class="palette-row" id="paletteRow"></div>
+        </div>
+      </div>
+      <div class="color-tools-right">
+        <div class="tool-card">
+          <h4>OKLAB L (lightness)</h4>
+          <label>OKLAB L 0–100 (same a, b; perceived lightness)</label>
+          <input type="range" id="labLSlider" min="0" max="100" value="53">
+          <span id="labLValue">53</span>
+          <div class="out-row">
+            <span class="swatch" id="labOutSwatch" title="click to copy"></span>
+            <span class="hex" id="labOutHex">#808080</span>
+          </div>
+          <div class="out-row" style="margin-top:8px">
+            <span class="label" style="font-size:11px;color:var(--text-dim)">Grayscale preview (result as gray):</span>
+            <span class="swatch" id="labResultPreviewSwatch" style="width:24px;height:24px;background:#808080" title="click to copy"></span>
+            <span class="hex" id="labResultPreviewHex" style="font-size:12px;cursor:pointer" title="click to copy">#808080</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+<div id="colorPickerTooltip" class="color-picker-tooltip" style="display:none">
+  <span class="swatch" id="colorPickerSwatch"></span>
+  <span id="colorPickerHex"></span>
+  <span class="hint" id="colorPickerHint">click to copy</span>
 </div>
 
 <script>
@@ -153,7 +347,7 @@
   const origEmpty = document.getElementById('origEmpty');
   const grayEmpty = document.getElementById('grayEmpty');
 
-  // ITU-R BT.601 luminance (일반 프린터 grayscale 알고리즘)
+  // ITU-R BT.601 luminance (typical printer grayscale)
   function toGrayscale(data) {
     for (let i = 0; i < data.length; i += 4) {
       const r = data[i], g = data[i+1], b = data[i+2];
@@ -163,6 +357,136 @@
   }
 
   let currentUrl = null;
+  let colorPickerCanvas = null;
+  const tooltipEl = document.getElementById('colorPickerTooltip');
+  const swatchEl = document.getElementById('colorPickerSwatch');
+  const hexEl = document.getElementById('colorPickerHex');
+  const hintEl = document.getElementById('colorPickerHint');
+
+  function rgbToHex(r, g, b) {
+    return '#' + [r, g, b].map(function(x) { return ('0' + Math.max(0, Math.min(255, Math.round(x))).toString(16)).slice(-2); }).join('');
+  }
+
+  function parseHex(hex) {
+    hex = String(hex).trim().replace(/^#/, '');
+    if (hex.length === 3) hex = hex[0]+hex[0]+hex[1]+hex[1]+hex[2]+hex[2];
+    if (hex.length !== 6) return null;
+    var n = parseInt(hex, 16);
+    if (isNaN(n)) return null;
+    return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+  }
+
+  function luminance(r, g, b) {
+    return 0.299 * r + 0.587 * g + 0.114 * b;
+  }
+
+  // OKLAB (L 0–1 in spec; we use 0–100 in UI)
+  function rgbToOklab(r, g, b) {
+    var rl = r / 255, gl = g / 255, bl = b / 255;
+    rl = rl <= 0.04045 ? rl / 12.92 : Math.pow((rl + 0.055) / 1.055, 2.4);
+    gl = gl <= 0.04045 ? gl / 12.92 : Math.pow((gl + 0.055) / 1.055, 2.4);
+    bl = bl <= 0.04045 ? bl / 12.92 : Math.pow((bl + 0.055) / 1.055, 2.4);
+    var l = 0.4122214708 * rl + 0.5363325363 * gl + 0.0514459929 * bl;
+    var m = 0.2119034982 * rl + 0.6806995451 * gl + 0.1073969566 * bl;
+    var s = 0.0883024619 * rl + 0.2817188376 * gl + 0.6299787005 * bl;
+    var l_ = Math.cbrt(l), m_ = Math.cbrt(m), s_ = Math.cbrt(s);
+    return {
+      L: (0.2104542553 * l_ + 0.7936177850 * m_ - 0.0040720468 * s_) * 100,
+      a: 1.9779984951 * l_ - 2.4285922050 * m_ + 0.4505937099 * s_,
+      b: 0.0259040371 * l_ + 0.7827717662 * m_ - 0.8086757660 * s_
+    };
+  }
+
+  function oklabToRgb(L100, a, b) {
+    var L = L100 / 100;
+    var l_ = L + 0.3963377774 * a + 0.2158037573 * b;
+    var m_ = L - 0.1055613458 * a - 0.0638541728 * b;
+    var s_ = L - 0.0894841775 * a - 1.2914855480 * b;
+    var l = l_ * l_ * l_, m = m_ * m_ * m_, s = s_ * s_ * s_;
+    var rl = 4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s;
+    var gl = -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s;
+    var bl = -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s;
+    function toSrgb(c) { return c <= 0.0031308 ? 12.92 * c : 1.055 * Math.pow(c, 1/2.4) - 0.055; }
+    return {
+      r: Math.round(Math.max(0, Math.min(255, toSrgb(rl) * 255))),
+      g: Math.round(Math.max(0, Math.min(255, toSrgb(gl) * 255))),
+      b: Math.round(Math.max(0, Math.min(255, toSrgb(bl) * 255)))
+    };
+  }
+
+  var baseColor = { r: 128, g: 128, b: 128 };
+
+  function updateColorFromBase() {
+    var hex = document.getElementById('baseHexInput').value.trim();
+    var rgb = parseHex(hex);
+    if (!rgb) return;
+    baseColor = rgb;
+    document.getElementById('baseSwatch').style.background = rgbToHex(rgb.r, rgb.g, rgb.b);
+
+    var lab = rgbToOklab(rgb.r, rgb.g, rgb.b);
+    var labLSlider = document.getElementById('labLSlider');
+    var labLVal = Math.round(lab.L);
+    labLSlider.value = labLVal;
+    document.getElementById('labLValue').textContent = labLVal;
+    var rgb2 = oklabToRgb(lab.L, lab.a, lab.b);
+    var labHex = rgbToHex(rgb2.r, rgb2.g, rgb2.b);
+    document.getElementById('labOutSwatch').style.background = labHex;
+    document.getElementById('labOutHex').textContent = labHex;
+    var labY = Math.round(luminance(rgb2.r, rgb2.g, rgb2.b));
+    var labResultGrayHex = rgbToHex(labY, labY, labY);
+    document.getElementById('labResultPreviewSwatch').style.background = labResultGrayHex;
+    document.getElementById('labResultPreviewHex').textContent = labResultGrayHex;
+    updatePalette();
+  }
+
+  function updateLabFromSlider() {
+    var lab = rgbToOklab(baseColor.r, baseColor.g, baseColor.b);
+    var l = parseFloat(document.getElementById('labLSlider').value, 10);
+    document.getElementById('labLValue').textContent = Math.round(l);
+    var rgb2 = oklabToRgb(l, lab.a, lab.b);
+    var hex = rgbToHex(rgb2.r, rgb2.g, rgb2.b);
+    document.getElementById('labOutSwatch').style.background = hex;
+    document.getElementById('labOutHex').textContent = hex;
+    var labY = Math.round(luminance(rgb2.r, rgb2.g, rgb2.b));
+    var labResultGrayHex = rgbToHex(labY, labY, labY);
+    document.getElementById('labResultPreviewSwatch').style.background = labResultGrayHex;
+    document.getElementById('labResultPreviewHex').textContent = labResultGrayHex;
+  }
+
+  function rotateOklabAb(a, b, deg) {
+    var rad = deg * Math.PI / 180;
+    var c = Math.cos(rad), s = Math.sin(rad);
+    return { a: a * c - b * s, b: a * s + b * c };
+  }
+
+  function updatePalette() {
+    var lab = rgbToOklab(baseColor.r, baseColor.g, baseColor.b);
+    var L = lab.L, a = lab.a, b = lab.b;
+    var items = [
+      { label: 'Base', hex: rgbToHex(baseColor.r, baseColor.g, baseColor.b) },
+      { label: 'Complementary', hex: (function() { var r = oklabToRgb(L, -a, -b); return rgbToHex(r.r, r.g, r.b); })() },
+      { label: 'Analogous −', hex: (function() { var t = rotateOklabAb(a, b, -40); var r = oklabToRgb(L, t.a, t.b); return rgbToHex(r.r, r.g, r.b); })() },
+      { label: 'Analogous +', hex: (function() { var t = rotateOklabAb(a, b, 40); var r = oklabToRgb(L, t.a, t.b); return rgbToHex(r.r, r.g, r.b); })() },
+      { label: 'Triadic 1', hex: (function() { var t = rotateOklabAb(a, b, 120); var r = oklabToRgb(L, t.a, t.b); return rgbToHex(r.r, r.g, r.b); })() },
+      { label: 'Triadic 2', hex: (function() { var t = rotateOklabAb(a, b, 240); var r = oklabToRgb(L, t.a, t.b); return rgbToHex(r.r, r.g, r.b); })() }
+    ];
+    var row = document.getElementById('paletteRow');
+    row.innerHTML = items.map(function(item) {
+      return '<div class="palette-swatch" data-hex="' + item.hex + '" title="click to copy">' +
+        '<span class="box" style="background:' + item.hex + '"></span>' +
+        '<span class="label">' + item.label + '</span>' +
+        '<span class="hex">' + item.hex + '</span></div>';
+    }).join('');
+    row.querySelectorAll('.palette-swatch').forEach(function(el) {
+      el.addEventListener('click', function() {
+        var hex = el.getAttribute('data-hex');
+        navigator.clipboard.writeText(hex).then(function() {
+          var span = el.querySelector('.hex');
+          var t = span.textContent; span.textContent = 'Copied!'; setTimeout(function() { span.textContent = t; }, 600);
+        });
+      });
+    });
+  }
 
   function fitPreviewToContainer() {
     var maxH = Math.floor(window.innerHeight * 0.7);
@@ -193,6 +517,58 @@
       img.style.minWidth = '0';
       origWrap.innerHTML = '';
       origWrap.appendChild(img);
+      origWrap.classList.add('img-pickable');
+
+      var w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+      colorPickerCanvas = document.createElement('canvas');
+      colorPickerCanvas.width = w;
+      colorPickerCanvas.height = h;
+      colorPickerCanvas.getContext('2d').drawImage(img, 0, 0);
+
+      function onOrigMouseMove(e) {
+        if (!colorPickerCanvas) return;
+        var rect = img.getBoundingClientRect();
+        var x = e.clientX - rect.left, y = e.clientY - rect.top;
+        if (x < 0 || y < 0 || x >= rect.width || y >= rect.height) { tooltipEl.style.display = 'none'; return; }
+        var px = Math.floor((x / rect.width) * w);
+        var py = Math.floor((y / rect.height) * h);
+        px = Math.max(0, Math.min(w - 1, px));
+        py = Math.max(0, Math.min(h - 1, py));
+        var ctx = colorPickerCanvas.getContext('2d');
+        var data = ctx.getImageData(px, py, 1, 1).data;
+        var r = data[0], g = data[1], b = data[2];
+        var hex = rgbToHex(r, g, b);
+        hexEl.textContent = hex;
+        swatchEl.style.background = hex;
+        tooltipEl.style.display = 'flex';
+        tooltipEl.style.left = (e.clientX + 14) + 'px';
+        tooltipEl.style.top = (e.clientY + 14) + 'px';
+        hintEl.textContent = 'click to copy';
+      }
+      function onOrigMouseLeave() {
+        tooltipEl.style.display = 'none';
+      }
+      function onOrigClick(e) {
+        if (!colorPickerCanvas) return;
+        var rect = img.getBoundingClientRect();
+        var x = e.clientX - rect.left, y = e.clientY - rect.top;
+        if (x < 0 || y < 0 || x >= rect.width || y >= rect.height) return;
+        var px = Math.floor((x / rect.width) * w);
+        var py = Math.floor((y / rect.height) * h);
+        px = Math.max(0, Math.min(w - 1, px));
+        py = Math.max(0, Math.min(h - 1, py));
+        var data = colorPickerCanvas.getContext('2d').getImageData(px, py, 1, 1).data;
+        var hex = rgbToHex(data[0], data[1], data[2]);
+        document.getElementById('baseHexInput').value = hex;
+        updateColorFromBase();
+        navigator.clipboard.writeText(hex).then(function() {
+          hintEl.textContent = 'Copied!';
+          setTimeout(function() { hintEl.textContent = 'click to copy'; }, 800);
+        }).catch(function() {});
+      }
+      img.addEventListener('mousemove', onOrigMouseMove);
+      img.addEventListener('mouseleave', onOrigMouseLeave);
+      img.addEventListener('click', onOrigClick);
 
       var maxH = Math.floor(window.innerHeight * 0.7);
       var maxW = origWrap.clientWidth || (document.documentElement.clientWidth - 48);
@@ -201,7 +577,6 @@
         img.style.maxHeight = maxH + 'px';
       }
 
-      const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
       const canvas = document.createElement('canvas');
       canvas.width = w;
       canvas.height = h;
@@ -236,7 +611,7 @@
     img.onerror = function() {
       if (currentUrl) URL.revokeObjectURL(currentUrl);
       currentUrl = null;
-      alert('이미지 로드 실패');
+      alert('Failed to load image');
     };
     img.src = currentUrl;
   }
@@ -257,7 +632,7 @@
     dropZone.classList.remove('dragover');
     const f = e.dataTransfer?.files?.[0];
     if (f && f.type.startsWith('image/')) processImage(f);
-    else alert('이미지 파일을 넣어주세요');
+    else alert('Please drop an image file');
   });
 
   document.addEventListener('paste', function(e) {
@@ -276,6 +651,51 @@
   });
 
   window.addEventListener('resize', fitPreviewToContainer);
+
+  var baseHexInput = document.getElementById('baseHexInput');
+  var labLSlider = document.getElementById('labLSlider');
+  var labOutHex = document.getElementById('labOutHex');
+  var labOutSwatch = document.getElementById('labOutSwatch');
+
+  baseHexInput.addEventListener('change', updateColorFromBase);
+  baseHexInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') updateColorFromBase(); });
+  labLSlider.addEventListener('input', updateLabFromSlider);
+
+  function copyLab() {
+    var hex = labOutHex.textContent;
+    navigator.clipboard.writeText(hex).then(function() {
+      var t = labOutHex.textContent; labOutHex.textContent = 'Copied!'; setTimeout(function() { labOutHex.textContent = t; }, 600);
+    });
+  }
+  labOutSwatch.addEventListener('click', copyLab);
+  labOutHex.addEventListener('click', copyLab);
+
+  var labResultPreviewSwatch = document.getElementById('labResultPreviewSwatch');
+  var labResultPreviewHex = document.getElementById('labResultPreviewHex');
+  function copyLabResultPreview() {
+    var hex = labResultPreviewHex.textContent;
+    if (!hex) return;
+    navigator.clipboard.writeText(hex).then(function() {
+      var t = labResultPreviewHex.textContent; labResultPreviewHex.textContent = 'Copied!'; setTimeout(function() { labResultPreviewHex.textContent = t; }, 600);
+    });
+  }
+  labResultPreviewSwatch.addEventListener('click', copyLabResultPreview);
+  labResultPreviewHex.addEventListener('click', copyLabResultPreview);
+
+  updateColorFromBase();
+  updatePalette();
+
+  function toggleTheme() {
+    var root = document.documentElement;
+    var isLight = root.classList.toggle('light');
+    document.getElementById('themeToggle').textContent = isLight ? '☀️' : '🌙';
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  }
+  document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+  if (localStorage.getItem('theme') !== 'dark') {
+    document.documentElement.classList.add('light');
+    document.getElementById('themeToggle').textContent = '☀️';
+  }
 })();
 </script>
 </body>

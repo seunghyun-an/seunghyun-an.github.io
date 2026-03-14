@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -591,8 +591,8 @@
 <div class="dropzone-overlay" id="dropOverlay">
   <div class="dropzone-box">
     <div style="font-size:48px">📂</div>
-    <p>여기에 파일을 놓으세요</p>
-    <span>CSV, TSV 파일 지원</span>
+    <p>Drop file here</p>
+    <span>CSV, TSV supported</span>
   </div>
 </div>
 
@@ -601,20 +601,20 @@
   <h1><a href="index.html" style="color:var(--text-dim);text-decoration:none;font-size:14px;margin-right:12px" title="Back to main site">← Home</a>📊 <span>Graph</span> Explorer</h1>
   <div class="header-actions">
     <label class="btn" id="fileBtn">
-      📁 파일 열기
+      📁 Open file
       <input type="file" accept=".csv,.tsv,.txt" id="fileInput" style="display:none">
     </label>
-    <button class="btn" id="savePng" disabled>📷 PNG 저장</button>
-    <button class="btn" id="saveTsv" disabled onclick="exportToTsv()" title="현재 플롯 데이터(필터 적용) TSV 저장">📋 TSV 저장</button>
-    <button class="btn" id="copyTsv" disabled onclick="copyTsvToClipboard()" title="TSV 데이터 클립보드로 복사">📋 복사</button>
-    <button class="btn" id="saveGnuplot" disabled onclick="exportToGnuplot()" title="gnuplot 호환 형식 (.dat, 헤더는 # 주석)">📋 Gnuplot</button>
-    <button class="btn" onclick="saveSession()" title="현재 설정+데이터를 JSON으로 저장">💾 저장</button>
-    <label class="btn" title="저장된 JSON 세션 불러오기">
-      📂 불러오기
+    <button class="btn" id="savePng" disabled>📷 Save PNG</button>
+    <button class="btn" id="saveTsv" disabled onclick="exportToTsv()" title="Save current plot data (filtered) as TSV">📋 Save TSV</button>
+    <button class="btn" id="copyTsv" disabled onclick="copyTsvToClipboard()" title="Copy TSV to clipboard">📋 Copy</button>
+    <button class="btn" id="saveGnuplot" disabled onclick="exportToGnuplot()" title="Gnuplot format (.dat, header as # comment)">📋 Gnuplot</button>
+    <button class="btn" onclick="saveSession()" title="Save current settings + data as JSON">💾 Save</button>
+    <label class="btn" title="Load saved JSON session">
+      📂 Load
       <input type="file" accept=".json" id="loadSessionInput" style="display:none" onchange="loadSession(this)">
     </label>
-    <button class="btn" onclick="shuffleColors()" title="컬러 팔레트 랜덤 셔플">🎨</button>
-    <button class="btn" id="themeToggle" onclick="toggleTheme()" title="라이트/다크 모드 전환">🌙</button>
+    <button class="btn" onclick="shuffleColors()" title="Shuffle color palette">🎨</button>
+    <button class="btn" id="themeToggle" onclick="toggleTheme()" title="Light/Dark mode">🌙</button>
   </div>
 </div>
 
@@ -627,11 +627,11 @@
     <!-- X axis -->
     <div class="sidebar-section expandable">
       <div class="sidebar-section-header" onclick="toggleSection(this)">
-        X축 선택 <span class="chevron">▼</span>
+        X axis <span class="chevron">▼</span>
       </div>
       <div class="sidebar-section-body">
         <select id="xSelect" disabled>
-          <option value="">파일을 먼저 로드하세요</option>
+          <option value="">Load a file first</option>
         </select>
       </div>
     </div>
@@ -639,26 +639,26 @@
     <!-- Transpose -->
     <div class="sidebar-section expandable">
       <div class="sidebar-section-header" onclick="toggleSection(this)">
-        데이터 변환
-        <span class="tooltip-help" data-tip="표 전치: 행과 열을 바꿉니다.&#10;시리즈가 열에 있는 데이터를 행 기준으로 보거나 그 반대에 유용합니다.">ⓘ</span>
+        Data transform
+        <span class="tooltip-help" data-tip="Transpose: swap rows and columns.&#10;Useful when series are in columns and you want them by row or vice versa.">ⓘ</span>
         <span class="chevron collapsed">▼</span>
       </div>
       <div class="sidebar-section-body collapsed-body">
-        <button class="btn btn-sm" id="btnTranspose" disabled onclick="transposeData()" title="행↔열 전치">🔄 표 전치 (Transpose)</button>
+        <button class="btn btn-sm" id="btnTranspose" disabled onclick="transposeData()" title="Transpose rows/columns">🔄 Transpose</button>
       </div>
     </div>
 
     <!-- Data Filter -->
     <div class="sidebar-section expandable">
       <div class="sidebar-section-header" onclick="toggleSection(this)">
-        데이터 필터
-        <span class="tooltip-help" data-tip="조건식으로 행을 필터링합니다.&#10;예: step_id > 100 && step_id < 200&#10;연산자: >, <, >=, <=, ==, !=, &&, ||&#10;함수: abs, sqrt, log 등 사용 가능">ⓘ</span>
+        Data filter
+        <span class="tooltip-help" data-tip="Filter rows by expression.&#10;e.g. step_id > 100 && step_id < 200&#10;Operators: >, <, >=, <=, ==, !=, &&, ||&#10;Functions: abs, sqrt, log, etc.">ⓘ</span>
         <span class="chevron">▼</span>
       </div>
       <div class="sidebar-section-body">
         <div class="filter-input-row">
-          <input type="text" id="filterExpr" placeholder="예: step_id > 100 && step_id < 200" onkeydown="if(event.key==='Enter') addFilter()">
-          <button class="btn btn-sm btn-primary" onclick="addFilter()">추가</button>
+          <input type="text" id="filterExpr" placeholder="e.g. step_id > 100 && step_id < 200" onkeydown="if(event.key==='Enter') addFilter()">
+          <button class="btn btn-sm btn-primary" onclick="addFilter()">Add</button>
         </div>
         <div class="filter-list" id="filterList"></div>
         <div class="filter-count" id="filterCount"></div>
@@ -668,7 +668,7 @@
     <!-- Y axis (tabbed Y1/Y2) -->
     <div class="sidebar-section y-axis-section">
       <div class="sidebar-section-header" onclick="toggleSection(this)">
-        Y축 선택 <span class="chevron">▼</span>
+        Y axis <span class="chevron">▼</span>
       </div>
       <div class="sidebar-section-body">
         <div class="y-axis-tabs">
@@ -677,21 +677,21 @@
         </div>
         <div id="y1Panel" class="y-panel">
           <div class="y-search">
-            <input type="text" id="ySearch" placeholder="컬럼 검색..." disabled>
+            <input type="text" id="ySearch" placeholder="Search columns..." disabled>
           </div>
           <div class="y-select-actions">
-            <button class="btn btn-sm" id="selectAll" disabled>전체 선택</button>
-            <button class="btn btn-sm" id="deselectAll" disabled>전체 해제</button>
+            <button class="btn btn-sm" id="selectAll" disabled>Select all</button>
+            <button class="btn btn-sm" id="deselectAll" disabled>Deselect all</button>
           </div>
           <div id="yChecklist"></div>
         </div>
         <div id="y2Panel" class="y-panel hidden">
           <div class="y-search">
-            <input type="text" id="y2Search" placeholder="컬럼 검색..." disabled>
+            <input type="text" id="y2Search" placeholder="Search columns..." disabled>
           </div>
           <div class="y-select-actions">
-            <button class="btn btn-sm" id="y2SelectAll" disabled>전체 선택</button>
-            <button class="btn btn-sm" id="y2DeselectAll" disabled>전체 해제</button>
+            <button class="btn btn-sm" id="y2SelectAll" disabled>Select all</button>
+            <button class="btn btn-sm" id="y2DeselectAll" disabled>Deselect all</button>
           </div>
           <div id="y2Checklist"></div>
         </div>
@@ -701,11 +701,11 @@
     <!-- Reference lines -->
     <div class="sidebar-section expandable">
       <div class="sidebar-section-header" onclick="toggleSection(this)">
-        보조선 <span class="chevron collapsed">▼</span>
+        Reference lines <span class="chevron collapsed">▼</span>
       </div>
       <div class="sidebar-section-body collapsed-body">
         <div class="ref-line-list" id="refLineList">
-          <div class="ref-line-empty" id="refLineEmpty">x = 1, y = 3 등을 파생 수식에 추가</div>
+          <div class="ref-line-empty" id="refLineEmpty">Add e.g. x = 1, y = 3 in derived formulas</div>
         </div>
       </div>
     </div>
@@ -713,147 +713,147 @@
     <!-- Axis settings -->
     <div class="sidebar-section expandable">
       <div class="sidebar-section-header" onclick="toggleSection(this)">
-        축 설정 <span class="chevron collapsed">▼</span>
+        Axis settings <span class="chevron collapsed">▼</span>
       </div>
       <div class="sidebar-section-body collapsed-body">
         <div class="form-row" style="margin-bottom: 10px">
           <div>
-            <label class="form-label">X축 라벨</label>
-            <input type="text" id="xLabel" placeholder="auto (컬럼명)" onkeydown="if(event.key==='Enter') applyAxisSettings()">
+            <label class="form-label">X axis label</label>
+            <input type="text" id="xLabel" placeholder="auto (column name)" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
           <div>
-            <label class="form-label">Y1축 라벨</label>
+            <label class="form-label">Y1 axis label</label>
             <input type="text" id="yLabel" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
         </div>
         <div class="toggle-row">
-          <span>X축 Log 스케일</span>
+          <span>X axis log scale</span>
           <div class="toggle" id="xLog" onclick="toggleSwitch(this)"></div>
         </div>
         <div class="toggle-row">
-          <span>Y1축 Log 스케일</span>
+          <span>Y1 axis log scale</span>
           <div class="toggle" id="yLog" onclick="toggleSwitch(this)"></div>
         </div>
-        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px">Log 시 최소/최대 = 실제값 (예: 0.1, 1000)</div>
+        <div style="font-size:11px;color:var(--text-dim);margin-bottom:6px">For log scale, min/max = actual values (e.g. 0.1, 1000)</div>
         <div class="form-row" style="margin-bottom: 10px">
           <div>
-            <label class="form-label">X 최소</label>
+            <label class="form-label">X min</label>
             <input type="text" id="xMin" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
           <div>
-            <label class="form-label">X 최대</label>
+            <label class="form-label">X max</label>
             <input type="text" id="xMax" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
         </div>
         <div class="form-row" style="margin-bottom: 10px">
           <div>
-            <label class="form-label">Y1 최소</label>
+            <label class="form-label">Y1 min</label>
             <input type="text" id="yMin" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
           <div>
-            <label class="form-label">Y1 최대</label>
+            <label class="form-label">Y1 max</label>
             <input type="text" id="yMax" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
         </div>
         <div class="form-row" style="margin-bottom: 10px">
           <div>
-            <label class="form-label">X축 눈금 주기</label>
+            <label class="form-label">X tick period</label>
             <input type="text" id="xTick" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
           <div>
-            <label class="form-label">Y1축 눈금 주기</label>
+            <label class="form-label">Y1 tick period</label>
             <input type="text" id="yTick" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
         </div>
         <div style="border-top: 1px solid var(--border); margin: 8px 0; padding-top: 8px">
           <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-dim);margin-bottom:8px">Y2 (Right Axis)</div>
           <div class="form-group">
-            <label class="form-label">Y2축 라벨</label>
+            <label class="form-label">Y2 axis label</label>
             <input type="text" id="y2Label" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
           <div class="toggle-row">
-            <span>Y2축 Log 스케일</span>
+            <span>Y2 axis log scale</span>
             <div class="toggle" id="y2Log" onclick="toggleSwitch(this)"></div>
           </div>
           <div class="form-row" style="margin-bottom: 10px">
             <div>
-              <label class="form-label">Y2 최소</label>
+              <label class="form-label">Y2 min</label>
               <input type="text" id="y2Min" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
             </div>
             <div>
-              <label class="form-label">Y2 최대</label>
+              <label class="form-label">Y2 max</label>
               <input type="text" id="y2Max" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Y2축 눈금 주기</label>
+            <label class="form-label">Y2 tick period</label>
             <input type="text" id="y2Tick" placeholder="auto" onkeydown="if(event.key==='Enter') applyAxisSettings()">
           </div>
         </div>
-        <button class="btn btn-sm" style="width:100%" onclick="applyAxisSettings()">적용</button>
+        <button class="btn btn-sm" style="width:100%" onclick="applyAxisSettings()">Apply</button>
       </div>
     </div>
 
     <!-- Data Split -->
     <div class="sidebar-section expandable">
       <div class="sidebar-section-header" onclick="toggleSection(this)">
-        데이터 분할
-        <span class="tooltip-help" data-tip="주기: 숫자 컬럼을 주기로 잘라 겹쳐 비교&#10;그룹: 텍스트 컬럼의 고유값별로 분할">ⓘ</span>
+        Data split
+        <span class="tooltip-help" data-tip="Period: slice numeric column by period and overlay&#10;Group: split by unique values of text column">ⓘ</span>
         <span class="chevron collapsed">▼</span>
       </div>
       <div class="sidebar-section-body collapsed-body">
         <div class="toggle-row">
-          <span>분할 활성화</span>
+          <span>Enable split</span>
           <div class="toggle" id="splitEnabled" onclick="toggleSwitch(this)"></div>
         </div>
         <div class="form-group">
-          <label class="form-label">분할 방식</label>
+          <label class="form-label">Split mode</label>
           <select id="splitMode" onchange="onSplitModeChange()">
-            <option value="period">주기 (숫자)</option>
-            <option value="group">그룹 (텍스트)</option>
+            <option value="period">Period (numeric)</option>
+            <option value="group">Group (text)</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">기준 컬럼</label>
+          <label class="form-label">Split column</label>
           <select id="splitCol" disabled>
-            <option value="">X축과 동일</option>
+            <option value="">Same as X axis</option>
           </select>
         </div>
         <div id="splitPeriodOpts">
           <div class="form-group">
-            <label class="form-label">주기 (구간 크기)</label>
-            <input type="number" id="splitPeriod" placeholder="예: 100" min="1" step="any">
+            <label class="form-label">Period (interval size)</label>
+            <input type="number" id="splitPeriod" placeholder="e.g. 100" min="1" step="any">
           </div>
           <div class="form-group">
-            <label class="form-label">시작 오프셋</label>
+            <label class="form-label">Start offset</label>
             <input type="number" id="splitOffset" value="0" step="any">
           </div>
         </div>
-        <button class="btn btn-sm" style="width:100%" onclick="updateChart()">적용</button>
+        <button class="btn btn-sm" style="width:100%" onclick="updateChart()">Apply</button>
       </div>
     </div>
 
     <!-- Chart Options -->
     <div class="sidebar-section expandable">
       <div class="sidebar-section-header" onclick="toggleSection(this)">
-        차트 옵션 <span class="chevron collapsed">▼</span>
+        Chart options <span class="chevron collapsed">▼</span>
       </div>
       <div class="sidebar-section-body collapsed-body">
         <div class="form-group">
-          <label class="form-label">차트 유형</label>
+          <label class="form-label">Chart type</label>
           <select id="chartType">
-            <option value="markers">Scatter (점)</option>
-            <option value="lines" selected>Line (선)</option>
+            <option value="markers">Scatter</option>
+            <option value="lines" selected>Line</option>
             <option value="lines+markers">Line + Markers</option>
-            <option value="bar">Bar (막대)</option>
+            <option value="bar">Bar</option>
           </select>
         </div>
         <div class="form-group">
-          <label class="form-label">선 두께</label>
+          <label class="form-label">Line width</label>
           <input type="number" id="lineWidth" value="2" min="0.5" max="10" step="0.5">
         </div>
         <div class="form-group">
-          <label class="form-label">마커 크기</label>
+          <label class="form-label">Marker size</label>
           <input type="number" id="markerSize" value="4" min="1" max="20" step="1">
         </div>
         <div style="border-top: 1px solid var(--border); margin: 8px 0; padding-top: 8px">
@@ -862,7 +862,7 @@
             <div class="toggle" id="smoothEnabled" onclick="toggleSwitch(this)"></div>
           </div>
           <div class="form-group">
-            <label class="form-label">방법</label>
+            <label class="form-label">Method</label>
             <select id="smoothMethod" onchange="onSmoothMethodChange()">
               <option value="loess">LOESS</option>
               <option value="movavg">Moving Average</option>
@@ -871,13 +871,13 @@
           </div>
           <div class="form-group">
             <label class="form-label">
-              파라미터
-              <span class="tooltip-help" data-tip="LOESS: span (0~1, default 0.25)&#10;MovAvg: window size (정수, default 10)&#10;EMA: alpha (0~1, default 0.1)">ⓘ</span>
+              Parameter
+              <span class="tooltip-help" data-tip="LOESS: span (0~1, default 0.25)&#10;MovAvg: window size (int, default 10)&#10;EMA: alpha (0~1, default 0.1)">ⓘ</span>
             </label>
             <input type="number" id="smoothParam" value="0.25" min="0.001" step="any" onkeydown="if(event.key==='Enter') updateChart()">
           </div>
         </div>
-        <button class="btn btn-sm" style="width:100%" onclick="updateChart()">적용</button>
+        <button class="btn btn-sm" style="width:100%" onclick="updateChart()">Apply</button>
       </div>
     </div>
   </div>
@@ -887,8 +887,8 @@
     <div id="chart">
       <div class="empty-state" id="emptyState">
         <div class="icon">📈</div>
-        <p>CSV 또는 TSV 파일을 열어 시작하세요</p>
-        <small>드래그 앤 드롭 또는 상단 "파일 열기" 버튼 클릭</small>
+        <p>Open a CSV or TSV file to start</p>
+        <small>Drag and drop or click "Open file" above</small>
       </div>
     </div>
 
@@ -896,21 +896,21 @@
     <div class="formula-bar">
       <div class="formula-bar-header">
         <span>
-          파생 데이터 수식
-          <span class="tooltip-help" data-tip="수식에서 컬럼명을 사용하세요.&#10;예: col_A * 2 + col_B&#10;&#10;보조선: x = 1, y = 3 (직선, 데이터 선택에서 on/off)&#10;&#10;수학: sin, cos, sqrt, abs, log, pow, ...&#10;&#10;컬럼 함수:&#10;  loess(col, 0.25) — LOESS 평활화&#10;  movavg(col, 10) — 이동평균&#10;  ema(col, 0.1) — 지수이동평균&#10;  diff(col) — 차분 (전행 대비 변화)&#10;  cumsum(col) — 누적합">ⓘ</span>
+          Derived formulas
+          <span class="tooltip-help" data-tip="Use column names in formulas.&#10;e.g. col_A * 2 + col_B&#10;&#10;Reference lines: x = 1, y = 3 (toggle in data selection)&#10;&#10;Math: sin, cos, sqrt, abs, log, pow, ...&#10;&#10;Column functions:&#10;  loess(col, 0.25) — LOESS smoothing&#10;  movavg(col, 10) — moving average&#10;  ema(col, 0.1) — exponential moving average&#10;  diff(col) — difference from previous row&#10;  cumsum(col) — cumulative sum">ⓘ</span>
         </span>
         <span style="display:flex;gap:6px">
-          <button class="btn btn-sm" onclick="exportFormulas()" title="파생 수식만 JSON으로 내보내기">📤 Export</button>
-          <label class="btn btn-sm" title="JSON에서 파생 수식만 불러오기">
+          <button class="btn btn-sm" onclick="exportFormulas()" title="Export derived formulas as JSON">📤 Export</button>
+          <label class="btn btn-sm" title="Import derived formulas from JSON">
             📥 Import
             <input type="file" accept=".json" style="display:none" onchange="importFormulas(this)">
           </label>
         </span>
       </div>
       <div class="formula-input-row">
-        <input type="text" id="formulaName" placeholder="새 컬럼명">
-        <input type="text" id="formulaExpr" placeholder="수식 또는 보조선: x = 1, y = 3">
-        <button class="btn btn-sm btn-primary" id="addFormulaBtn" onclick="addFormula()">추가</button>
+        <input type="text" id="formulaName" placeholder="New column name">
+        <input type="text" id="formulaExpr" placeholder="Formula or ref line: x = 1, y = 3">
+        <button class="btn btn-sm btn-primary" id="addFormulaBtn" onclick="addFormula()">Add</button>
       </div>
       <div class="formula-list" id="formulaList"></div>
     </div>
@@ -919,7 +919,7 @@
 
 <!-- Status bar -->
 <div class="status-bar" id="statusBar">
-  <span id="statusFile">파일 없음</span>
+  <span id="statusFile">No file</span>
   <span id="statusRows">–</span>
   <span id="statusCols">–</span>
 </div>
@@ -1053,15 +1053,15 @@ function transposeData() {
   renderFormulaList();
   renderFilterList();
   applyFilters();
-  document.getElementById('statusRows').textContent = `${rawData[columns[0]]?.length || 0} 행`;
-  document.getElementById('statusCols').textContent = `${columns.length} 컬럼`;
+  document.getElementById('statusRows').textContent = `${rawData[columns[0]]?.length || 0} rows`;
+  document.getElementById('statusCols').textContent = `${columns.length} cols`;
   updateChart();
 }
 
 function parseData(text, fname) {
   const delimiter = detectDelimiter(text);
   const lines = text.trim().split('\n');
-  if (lines.length < 2) return alert('데이터가 부족합니다 (헤더 + 최소 1행 필요)');
+  if (lines.length < 2) return alert('Not enough data (need header + at least 1 row)');
 
   const headers = lines[0].split(delimiter).map(h => h.trim().replace(/^"|"$/g, ''));
   columns = headers;
@@ -1085,8 +1085,8 @@ function parseData(text, fname) {
   populateControls();
   document.getElementById('statusFile').textContent = `📄 ${fname}`;
   const rowCount = rawData[headers[0]]?.length || 0;
-  document.getElementById('statusRows').textContent = `${rowCount.toLocaleString()} 행`;
-  document.getElementById('statusCols').textContent = `${columns.length} 컬럼`;
+  document.getElementById('statusRows').textContent = `${rowCount.toLocaleString()} rows`;
+  document.getElementById('statusCols').textContent = `${columns.length} cols`;
   document.getElementById('savePng').disabled = false;
   document.getElementById('saveTsv').disabled = false;
   document.getElementById('copyTsv').disabled = false;
@@ -1115,7 +1115,7 @@ function populateControls() {
   const splitSel = document.getElementById('splitCol');
   const prevSplit = splitSel.value;
   splitSel.disabled = false;
-  splitSel.innerHTML = '<option value="">X축과 동일</option>' +
+  splitSel.innerHTML = '<option value="">Same as X axis</option>' +
     allCols.map(c => `<option value="${esc(c)}">${esc(c)}${derivedCols.some(d => d.name === c) ? ' ✦' : ''}</option>`).join('');
   if (prevSplit && allCols.includes(prevSplit)) splitSel.value = prevSplit;
 
@@ -1128,7 +1128,7 @@ function populateControls() {
       <span class="check-mark"></span>
       <span class="color-dot" style="background:${color}"></span>
       <span class="check-label">${esc(c)}${isDerived ? ' ✦' : ''}</span>
-      <span class="copy-btn" onclick="event.preventDefault();copyColName('${c.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')" title="컬럼명 복사">📋</span>
+      <span class="copy-btn" onclick="event.preventDefault();copyColName('${c.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')" title="Copy column name">📋</span>
     </label>`;
   }).join('');
 
@@ -1217,8 +1217,8 @@ function toggleTheme() {
   updateChart();
 }
 
-// Restore saved theme
-if (localStorage.getItem('theme') === 'light') {
+// Restore saved theme (default: light)
+if (localStorage.getItem('theme') !== 'dark') {
   document.documentElement.classList.add('light');
   document.getElementById('themeToggle').textContent = '☀️';
 }
@@ -1426,7 +1426,7 @@ function updateChart() {
     font: { color: css('--chart-font'), family: 'Segoe UI, sans-serif', size: 12 },
     margin: { l: 60, r: hasY2 ? 60 : 30, t: 30, b: 50 },
     xaxis: {
-      title: document.getElementById('xLabel').value || (usePeriodSplit ? `${splitColName} (주기 내 상대값)` : xCol),
+      title: document.getElementById('xLabel').value || (usePeriodSplit ? `${splitColName} (relative in period)` : xCol),
       type: xLog ? 'log' : (typeof xData[0] === 'string' && !usePeriodSplit ? 'category' : 'linear'),
       gridcolor: css('--chart-grid'),
       zerolinecolor: css('--chart-grid'),
@@ -1564,11 +1564,11 @@ function addFormula() {
   const nameInput = document.getElementById('formulaName');
   const exprInput = document.getElementById('formulaExpr');
   const expr = exprInput.value.trim();
-  if (!expr) return alert('수식을 입력하세요.');
+  if (!expr) return alert('Enter a formula.');
 
   const ref = parseRefLine(expr);
   if (ref) {
-    if (referenceLines.some(r => r.name === ref.name)) return alert('이미 같은 보조선이 있습니다.');
+    if (referenceLines.some(r => r.name === ref.name)) return alert('Same reference line already exists.');
     referenceLines.push({ ...ref, enabled: true });
     nameInput.value = '';
     exprInput.value = '';
@@ -1578,9 +1578,9 @@ function addFormula() {
   }
 
   const name = nameInput.value.trim() || expr.slice(0, 20);
-  if (!name) return alert('컬럼명을 입력하세요.');
-  if (columns.includes(name)) return alert('기존 컬럼명과 중복됩니다.');
-  if (derivedCols.some(d => d.name === name)) return alert('이미 같은 이름의 파생 컬럼이 존재합니다.');
+  if (!name) return alert('Enter a column name.');
+  if (columns.includes(name)) return alert('Column name already exists.');
+  if (derivedCols.some(d => d.name === name)) return alert('A derived column with this name already exists.');
 
   derivedCols.push({ name, expr });
   nameInput.value = '';
@@ -1616,7 +1616,7 @@ function removeReferenceLine(name) {
 function renderReferenceLineList() {
   const list = document.getElementById('refLineList');
   if (referenceLines.length === 0) {
-    list.innerHTML = '<div class="ref-line-empty" id="refLineEmpty">x = 1, y = 3 등을 파생 수식에 추가</div>';
+    list.innerHTML = '<div class="ref-line-empty" id="refLineEmpty">Add e.g. x = 1, y = 3 in derived formulas</div>';
     return;
   }
   list.innerHTML = referenceLines.map(r => `
@@ -1640,7 +1640,7 @@ function renderFormulaList() {
 }
 
 function exportFormulas() {
-  if (derivedCols.length === 0) return alert('내보낼 파생 수식이 없습니다.');
+  if (derivedCols.length === 0) return alert('No derived formulas to export.');
   const payload = { formulas: derivedCols.map(d => ({ name: d.name, expr: d.expr })) };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
@@ -1664,7 +1664,7 @@ function importFormulas(input) {
       } else if (Array.isArray(data.derivedCols)) {
         incoming = data.derivedCols;
       } else {
-        return alert('유효한 수식 파일이 아닙니다. (formulas 또는 derivedCols 배열 필요)');
+        return alert('Invalid formula file. (formulas or derivedCols array required)');
       }
 
       const existingNames = new Set([...columns, ...derivedCols.map(d => d.name)]);
@@ -1683,9 +1683,9 @@ function importFormulas(input) {
         renderFormulaList();
         updateChart();
       }
-      alert(`${added}개 수식 추가${skipped ? `, ${skipped}개 건너뜀 (중복 또는 잘못된 항목)` : ''}`);
+      alert(`${added} formula(s) added${skipped ? `, ${skipped} skipped (duplicate or invalid)` : ''}`);
     } catch (err) {
-      alert('수식 파일 로드 실패: ' + err.message);
+      alert('Failed to load formula file: ' + err.message);
     }
   };
   reader.readAsText(file);
@@ -2033,9 +2033,9 @@ function updateFilterCount() {
   if (!columns.length) { el.textContent = ''; return; }
   const total = rawData[columns[0]]?.length || 0;
   if (filteredIndices === null) {
-    el.innerHTML = `전체 <strong>${total.toLocaleString()}</strong> 행 표시 중`;
+    el.innerHTML = `Showing all <strong>${total.toLocaleString()}</strong> rows`;
   } else {
-    el.innerHTML = `<strong>${filteredIndices.length.toLocaleString()}</strong> / ${total.toLocaleString()} 행 표시 중`;
+    el.innerHTML = `Showing <strong>${filteredIndices.length.toLocaleString()}</strong> / ${total.toLocaleString()} rows`;
   }
 }
 
@@ -2077,7 +2077,7 @@ function buildTsvData() {
 
 function exportToTsv() {
   const tsv = buildTsvData();
-  if (!tsv) return alert('저장할 데이터가 없습니다.');
+  if (!tsv) return alert('No data to save.');
   const blob = new Blob([tsv], { type: 'text/tab-separated-values;charset=utf-8' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -2088,18 +2088,18 @@ function exportToTsv() {
 
 function copyTsvToClipboard() {
   const tsv = buildTsvData();
-  if (!tsv) return alert('복사할 데이터가 없습니다.');
+  if (!tsv) return alert('No data to copy.');
   navigator.clipboard.writeText(tsv).then(() => {
     const btn = document.getElementById('copyTsv');
     const orig = btn.textContent;
     btn.textContent = '✓';
     setTimeout(() => btn.textContent = orig, 600);
-  }).catch(() => alert('클립보드 복사에 실패했습니다.'));
+  }).catch(() => alert('Failed to copy to clipboard.'));
 }
 
 function exportToGnuplot() {
   const tsv = buildTsvData();
-  if (!tsv) return alert('저장할 데이터가 없습니다.');
+  if (!tsv) return alert('No data to save.');
   const lines = tsv.split('\n');
   lines[0] = '# ' + lines[0];
   const out = lines.join('\n');
@@ -2210,7 +2210,7 @@ function loadSession(input) {
   reader.onload = e => {
     try {
       const s = JSON.parse(e.target.result);
-      if (!s.columns || !s.rawData) return alert('유효한 세션 파일이 아닙니다.');
+      if (!s.columns || !s.rawData) return alert('Invalid session file.');
 
       // Restore core data
       fileName = s.fileName || '';
@@ -2259,7 +2259,7 @@ function loadSession(input) {
         smoothEnabled: false,
         smoothMethod: 'loess',
         smoothParam: '0.25',
-        theme: 'dark',
+        theme: 'light',
         sidebarWidth: '',
       };
       const st = { ...defaults, ...(s.settings || {}) };
@@ -2328,10 +2328,10 @@ function loadSession(input) {
       if (st.sidebarWidth) document.getElementById('sidebar').style.width = st.sidebarWidth;
 
       // Status bar
-      document.getElementById('statusFile').textContent = `📄 ${fileName || '(세션에서 로드)'}`;
+      document.getElementById('statusFile').textContent = `📄 ${fileName || '(loaded from session)'}`;
       const rowCount = rawData[columns[0]]?.length || 0;
-      document.getElementById('statusRows').textContent = `${rowCount.toLocaleString()} 행`;
-      document.getElementById('statusCols').textContent = `${columns.length} 컬럼`;
+      document.getElementById('statusRows').textContent = `${rowCount.toLocaleString()} rows`;
+      document.getElementById('statusCols').textContent = `${columns.length} cols`;
       document.getElementById('savePng').disabled = false;
       document.getElementById('saveTsv').disabled = false;
       document.getElementById('copyTsv').disabled = false;
@@ -2341,7 +2341,7 @@ function loadSession(input) {
 
       updateChart();
     } catch (err) {
-      alert('세션 파일 로드 실패: ' + err.message);
+      alert('Failed to load session file: ' + err.message);
     }
   };
   reader.readAsText(file);

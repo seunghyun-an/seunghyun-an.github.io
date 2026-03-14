@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Table Converter - TSV, CSV, Gnuplot 변환</title>
+<title>Table Converter - TSV, CSV, Gnuplot</title>
 <style>
   :root {
     --bg: #0f1117;
@@ -16,6 +16,17 @@
     --accent-hover: #8da6ff;
     --accent-bg: rgba(108,140,255,0.12);
     --radius: 8px;
+  }
+  :root.light {
+    --bg: #f5f6fa;
+    --surface: #ffffff;
+    --surface2: #eef0f6;
+    --border: #d8dbe6;
+    --text: #1a1d27;
+    --text-dim: #6b7085;
+    --accent: #4a6cf7;
+    --accent-hover: #3855d4;
+    --accent-bg: rgba(74,108,247,0.1);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -171,50 +182,53 @@
 </head>
 <body>
 <div class="container">
-  <h1>Table Converter</h1>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:8px">
+    <h1 style="margin-bottom:0">Table Converter</h1>
+    <button type="button" id="themeToggle" style="padding:6px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:14px" title="Light/Dark mode">🌙</button>
+  </div>
   <p class="subtitle">
-    TSV, CSV, Gnuplot 데이터 포맷 간 변환. 스프레드시트(Excel, Google Sheets)에서 복사한 데이터를 여기 <strong>텍스트 영역에 붙여넣기</strong>하면 탭 구분 텍스트로 변환됩니다.
-    <span class="tip">💡 이미지로 붙어온다면: 원본에서 Ctrl+C 후 이 페이지의 입력란을 클릭하고 Ctrl+V 하세요. 대부분의 스프레드시트는 plain textarea에 붙여넣을 때 텍스트(탭 구분)로 붙여넣습니다.</span>
+    Convert between TSV, CSV, and Gnuplot data formats. Paste data from spreadsheets (Excel, Google Sheets) into the <strong>text area</strong>; it is converted to tab-separated text.
+    <span class="tip">💡 If it pastes as image: Copy (Ctrl+C) from the source, then click the input area here and paste (Ctrl+V). Most spreadsheets paste as tab-separated text into a plain textarea.</span>
   </p>
 
   <div class="layout">
     <div class="panel">
       <div class="panel-header">
-        <span class="panel-title">입력 (Input)</span>
+        <span class="panel-title">Input</span>
         <select id="inputFormat">
-          <option value="auto">자동 감지</option>
-          <option value="tsv">TSV (탭 구분)</option>
-          <option value="csv">CSV (쉼표 구분)</option>
-          <option value="gnuplot">Gnuplot (공백/탭)</option>
+          <option value="auto">Auto-detect</option>
+          <option value="tsv">TSV (tab)</option>
+          <option value="csv">CSV (comma)</option>
+          <option value="gnuplot">Gnuplot (space/tab)</option>
         </select>
       </div>
-      <textarea id="inputData" placeholder="데이터를 붙여넣거나 입력하세요...&#10;&#10;예시 (TSV):&#10;이름	나이	점수&#10;김철수	25	85&#10;이영희	30	92"></textarea>
+      <textarea id="inputData" placeholder="Paste or type data...&#10;&#10;Example (TSV):&#10;name	age	score&#10;Alice	25	85&#10;Bob	30	92"></textarea>
       <div class="stats" id="inputStats"></div>
     </div>
 
     <div class="convert-zone">
-      <button class="btn btn-primary" id="btnConvert">⇄ 변환</button>
-      <label class="transpose-opt" title="행과 열을 바꿉니다">
+      <button class="btn btn-primary" id="btnConvert">⇄ Convert</button>
+      <label class="transpose-opt" title="Swap rows and columns">
         <input type="checkbox" id="chkTranspose">
-        <span>🔄 표 전치</span>
+        <span>🔄 Transpose</span>
       </label>
-      <button class="btn" id="btnSwap">↕ 입력↔출력</button>
+      <button class="btn" id="btnSwap">↕ Swap in/out</button>
     </div>
 
     <div class="panel">
       <div class="panel-header">
-        <span class="panel-title">출력 (Output)</span>
+        <span class="panel-title">Output</span>
         <select id="outputFormat">
-          <option value="tsv">TSV (탭 구분)</option>
-          <option value="csv">CSV (쉼표 구분)</option>
-          <option value="gnuplot">Gnuplot (공백 구분)</option>
+          <option value="tsv">TSV (tab)</option>
+          <option value="csv">CSV (comma)</option>
+          <option value="gnuplot">Gnuplot (space)</option>
         </select>
       </div>
-      <textarea id="outputData" readonly placeholder="변환 결과가 여기 표시됩니다"></textarea>
+      <textarea id="outputData" readonly placeholder="Converted result appears here"></textarea>
       <div class="stats" id="outputStats"></div>
       <div style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;">
-        <button class="btn btn-copy" id="btnCopy">📋 결과 복사</button>
-        <button class="btn btn-copy" id="btnDownload">💾 파일로 다운로드</button>
+        <button class="btn btn-copy" id="btnCopy">📋 Copy result</button>
+        <button class="btn btn-copy" id="btnDownload">💾 Download file</button>
       </div>
       <div class="error-msg" id="errorMsg"></div>
     </div>
@@ -235,9 +249,8 @@
   const inputStats = document.getElementById('inputStats');
   const outputStats = document.getElementById('outputStats');
 
-  // Paste handler: HTML에 <table>이 있을 때만 추출하여 삽입. (Excel 등)
-  // VSCode는 text/html+text/plain 둘 다 넣는데, HTML에 table이 없어 extractTableFromHtml이
-  // null이면 preventDefault 안 하므로 기본 paste(text/plain)가 그대로 동작.
+  // Paste handler: only intercept when HTML contains <table> (e.g. Excel).
+  // VSCode pastes both text/html and text/plain; if no table, we don't preventDefault so plain text paste works.
   inputEl.addEventListener('paste', function(e) {
     const html = e.clipboardData?.getData('text/html');
     if (!html) return;
@@ -387,7 +400,7 @@
     }
     const lines = text.trim().split(/\r?\n/).filter(function(l) { return l.trim(); });
     const cols = lines[0] ? lines[0].split(/\t|,/).length : 0;
-    el.textContent = label + ': ' + lines.length + ' 행 × ' + cols + ' 열';
+    el.textContent = label + ': ' + lines.length + ' rows × ' + cols + ' cols';
   }
 
   function doConvert() {
@@ -412,10 +425,10 @@
       }
       const result = convert(rows, outputFmt);
       outputEl.value = result;
-      updateStats(inputStats, text, '입력');
-      updateStats(outputStats, result, '출력');
+      updateStats(inputStats, text, 'Input');
+      updateStats(outputStats, result, 'Output');
     } catch (e) {
-      errorMsg.textContent = '오류: ' + e.message;
+      errorMsg.textContent = 'Error: ' + e.message;
       outputEl.value = '';
     }
   }
@@ -442,8 +455,8 @@
   btnCopy.addEventListener('click', function() {
     outputEl.select();
     document.execCommand('copy');
-    btnCopy.textContent = '✓ 복사됨';
-    setTimeout(function() { btnCopy.textContent = '📋 결과 복사'; }, 1500);
+    btnCopy.textContent = '✓ Copied';
+    setTimeout(function() { btnCopy.textContent = '📋 Copy result'; }, 1500);
   });
 
   btnDownload.addEventListener('click', function() {
@@ -462,6 +475,18 @@
   });
 
   doConvert();
+
+  function toggleTheme() {
+    var root = document.documentElement;
+    var isLight = root.classList.toggle('light');
+    document.getElementById('themeToggle').textContent = isLight ? '☀️' : '🌙';
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  }
+  document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+  if (localStorage.getItem('theme') !== 'dark') {
+    document.documentElement.classList.add('light');
+    document.getElementById('themeToggle').textContent = '☀️';
+  }
 })();
 </script>
 </body>
