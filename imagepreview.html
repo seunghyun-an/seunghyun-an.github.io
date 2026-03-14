@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Preview - Grayscale (프린트 확인용)</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242836;
+    --border: #2e3348;
+    --text: #e4e6f0;
+    --text-dim: #8b8fa8;
+    --accent: #6c8cff;
+    --accent-hover: #8da6ff;
+    --accent-bg: rgba(108,140,255,0.12);
+    --radius: 8px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body { overflow-x: hidden; }
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  .container { width: 100%; max-width: 1400px; margin: 0 auto; box-sizing: border-box; }
+
+  h1 { font-size: 24px; margin-bottom: 8px; }
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+  .subtitle .tip {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 6px 12px;
+    background: var(--accent-bg);
+    border-radius: var(--radius);
+    font-size: 12px;
+  }
+
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    text-align: center;
+    background: var(--surface);
+    margin-bottom: 24px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+  }
+  .drop-zone label { cursor: pointer; display: block; }
+  .drop-zone input { display: none; }
+  .drop-zone .hint { color: var(--text-dim); font-size: 13px; margin-top: 8px; }
+
+  .preview-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    min-width: 0;
+  }
+  @media (max-width: 900px) { .preview-row { grid-template-columns: 1fr; } }
+
+  .preview-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    overflow: hidden;
+    min-width: 0;
+  }
+  .preview-panel h3 {
+    font-size: 14px;
+    margin-bottom: 12px;
+    color: var(--text-dim);
+  }
+  .preview-panel .img-wrap {
+    background: #111;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100px;
+    max-height: 70vh;
+    min-width: 0;
+    width: 100%;
+    overflow: auto;
+  }
+  .preview-panel .img-wrap img {
+    max-width: 100%;
+    max-height: 70vh;
+    width: auto;
+    height: auto;
+    min-width: 0;
+    flex-shrink: 1;
+    display: block;
+  }
+
+  .empty-state {
+    color: var(--text-dim);
+    padding: 40px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <h1><a href="index.html" style="color:var(--text-dim);text-decoration:none;font-size:14px;margin-right:12px" title="Back to main site">← Home</a>Image Preview — Grayscale</h1>
+  <p class="subtitle">
+    이미지를 넣으면 프린트 시 색 구별 여부 확인용으로 Grayscale 미리보기를 보여줍니다.
+    <span class="tip">변환 공식: Y = 0.299R + 0.587G + 0.114B (ITU-R BT.601 / 일반 프린터 grayscale)</span>
+  </p>
+
+  <div class="drop-zone" id="dropZone">
+    <label>
+      <input type="file" id="fileInput" accept="image/*">
+      📁 이미지 선택 또는 여기에 드래그
+    </label>
+    <div class="hint">PNG, JPG, WebP 등 · Ctrl+V로 클립보드 이미지 붙여넣기</div>
+  </div>
+
+  <div class="preview-row">
+    <div class="preview-panel">
+      <h3>원본 (Original)</h3>
+      <div class="img-wrap" id="origWrap">
+        <div class="empty-state" id="origEmpty">이미지를 넣어주세요</div>
+      </div>
+    </div>
+    <div class="preview-panel">
+      <h3>Grayscale (프린트 미리보기)</h3>
+      <div class="img-wrap" id="grayWrap">
+        <div class="empty-state" id="grayEmpty">이미지를 넣어주세요</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const fileInput = document.getElementById('fileInput');
+  const dropZone = document.getElementById('dropZone');
+  const origWrap = document.getElementById('origWrap');
+  const grayWrap = document.getElementById('grayWrap');
+  const origEmpty = document.getElementById('origEmpty');
+  const grayEmpty = document.getElementById('grayEmpty');
+
+  // ITU-R BT.601 luminance (일반 프린터 grayscale 알고리즘)
+  function toGrayscale(data) {
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i], g = data[i+1], b = data[i+2];
+      const y = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+      data[i] = data[i+1] = data[i+2] = y;
+    }
+  }
+
+  let currentUrl = null;
+
+  function fitPreviewToContainer() {
+    var maxH = Math.floor(window.innerHeight * 0.7);
+    [origWrap, grayWrap].forEach(function(wrap) {
+      var el = wrap && wrap.querySelector('img');
+      if (!el) return;
+      var maxW = wrap.clientWidth;
+      if (maxW <= 0) return;
+      el.style.maxWidth = maxW + 'px';
+      el.style.maxHeight = maxH + 'px';
+    });
+  }
+
+  function processImage(file) {
+    if (currentUrl) URL.revokeObjectURL(currentUrl);
+    currentUrl = URL.createObjectURL(file);
+
+    const img = new Image();
+    img.onload = function() {
+      origEmpty?.remove();
+      grayEmpty?.remove();
+
+      img.style.maxWidth = '100%';
+      img.style.maxHeight = '70vh';
+      img.style.width = 'auto';
+      img.style.height = 'auto';
+      img.style.display = 'block';
+      img.style.minWidth = '0';
+      origWrap.innerHTML = '';
+      origWrap.appendChild(img);
+
+      var maxH = Math.floor(window.innerHeight * 0.7);
+      var maxW = origWrap.clientWidth || (document.documentElement.clientWidth - 48);
+      if (maxW > 0) {
+        img.style.maxWidth = maxW + 'px';
+        img.style.maxHeight = maxH + 'px';
+      }
+
+      const w = img.naturalWidth || img.width, h = img.naturalHeight || img.height;
+      const canvas = document.createElement('canvas');
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, w, h);
+      const data = imageData.data;
+      toGrayscale(data);
+      ctx.putImageData(imageData, 0, 0);
+
+      const grayImg = document.createElement('img');
+      grayImg.alt = 'Grayscale preview';
+      grayImg.style.width = 'auto';
+      grayImg.style.height = 'auto';
+      grayImg.style.display = 'block';
+      grayImg.style.minWidth = '0';
+      grayImg.onload = function() {
+        fitPreviewToContainer();
+        requestAnimationFrame(fitPreviewToContainer);
+        setTimeout(fitPreviewToContainer, 80);
+      };
+      grayImg.src = canvas.toDataURL('image/png');
+      grayWrap.innerHTML = '';
+      grayWrap.appendChild(grayImg);
+
+      fitPreviewToContainer();
+      requestAnimationFrame(function() {
+        fitPreviewToContainer();
+        setTimeout(fitPreviewToContainer, 80);
+      });
+    };
+    img.onerror = function() {
+      if (currentUrl) URL.revokeObjectURL(currentUrl);
+      currentUrl = null;
+      alert('이미지 로드 실패');
+    };
+    img.src = currentUrl;
+  }
+
+  fileInput.addEventListener('change', function() {
+    if (fileInput.files.length) processImage(fileInput.files[0]);
+  });
+
+  dropZone.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    dropZone.classList.add('dragover');
+  });
+  dropZone.addEventListener('dragleave', function() {
+    dropZone.classList.remove('dragover');
+  });
+  dropZone.addEventListener('drop', function(e) {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    const f = e.dataTransfer?.files?.[0];
+    if (f && f.type.startsWith('image/')) processImage(f);
+    else alert('이미지 파일을 넣어주세요');
+  });
+
+  document.addEventListener('paste', function(e) {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+    for (let i = 0; i < items.length; i++) {
+      if (items[i].type.startsWith('image/')) {
+        const blob = items[i].getAsFile();
+        if (blob) {
+          e.preventDefault();
+          processImage(blob);
+        }
+        return;
+      }
+    }
+  });
+
+  window.addEventListener('resize', fitPreviewToContainer);
+})();
+</script>
+</body>
+</html>
