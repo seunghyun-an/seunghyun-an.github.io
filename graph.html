@@ -604,6 +604,7 @@
       📁 Open file
       <input type="file" accept=".csv,.tsv,.txt" id="fileInput" style="display:none">
     </label>
+    <button class="btn" id="resetAll" onclick="resetAllData()" title="Clear all loaded data and reset UI">🗑 Reset</button>
     <button class="btn" id="savePng" disabled>📷 Save PNG</button>
     <button class="btn" id="saveTsv" disabled onclick="exportToTsv()" title="Save current plot data (filtered) as TSV">📋 Save TSV</button>
     <button class="btn" id="copyTsv" disabled onclick="copyTsvToClipboard()" title="Copy TSV to clipboard">📋 Copy</button>
@@ -888,7 +889,7 @@
       <div class="empty-state" id="emptyState">
         <div class="icon">📈</div>
         <p>Open a CSV or TSV file to start</p>
-        <small>Drag and drop or click "Open file" above</small>
+        <small>Drag and drop, paste (Ctrl/Cmd+V), or click "Open file" above</small>
       </div>
     </div>
 
@@ -940,6 +941,81 @@ let COLORS = [
   '#d0bfff','#ffa94d','#63e6be','#e599f7','#74c0fc',
   '#ffe066','#8ce99a','#ffc9c9','#b2f2bb','#d8f5a2',
 ];
+
+function resetAllData() {
+  // State
+  rawData = {};
+  columns = [];
+  fileName = '';
+  derivedCols = [];
+  referenceLines = [];
+  filters = [];
+  filterIdCounter = 0;
+  filteredIndices = null;
+
+  // File input
+  const fi = document.getElementById('fileInput');
+  if (fi) fi.value = '';
+
+  // Status
+  document.getElementById('statusFile').textContent = 'No file';
+  document.getElementById('statusRows').textContent = '–';
+  document.getElementById('statusCols').textContent = '–';
+
+  // Disable export buttons / transpose
+  document.getElementById('savePng').disabled = true;
+  document.getElementById('saveTsv').disabled = true;
+  document.getElementById('copyTsv').disabled = true;
+  document.getElementById('saveGnuplot').disabled = true;
+  const btnTranspose = document.getElementById('btnTranspose');
+  if (btnTranspose) btnTranspose.disabled = true;
+
+  // Controls
+  const xSel = document.getElementById('xSelect');
+  if (xSel) { xSel.disabled = true; xSel.innerHTML = ''; }
+  const splitSel = document.getElementById('splitCol');
+  if (splitSel) { splitSel.disabled = true; splitSel.innerHTML = '<option value="">Same as X axis</option>'; }
+
+  const ySearch = document.getElementById('ySearch');
+  if (ySearch) { ySearch.disabled = true; ySearch.value = ''; ySearch.oninput = null; }
+  const y2Search = document.getElementById('y2Search');
+  if (y2Search) { y2Search.disabled = true; y2Search.value = ''; y2Search.oninput = null; }
+
+  const yBox = document.getElementById('yChecklist');
+  if (yBox) yBox.innerHTML = '';
+  const y2Box = document.getElementById('y2Checklist');
+  if (y2Box) y2Box.innerHTML = '';
+
+  const selectAll = document.getElementById('selectAll');
+  if (selectAll) { selectAll.disabled = true; selectAll.onclick = null; }
+  const deselectAll = document.getElementById('deselectAll');
+  if (deselectAll) { deselectAll.disabled = true; deselectAll.onclick = null; }
+  const y2SelectAll = document.getElementById('y2SelectAll');
+  if (y2SelectAll) { y2SelectAll.disabled = true; y2SelectAll.onclick = null; }
+  const y2DeselectAll = document.getElementById('y2DeselectAll');
+  if (y2DeselectAll) { y2DeselectAll.disabled = true; y2DeselectAll.onclick = null; }
+
+  // Formulas / filters UI
+  const formulaList = document.getElementById('formulaList');
+  if (formulaList) formulaList.innerHTML = '';
+  const filterList = document.getElementById('filterList');
+  if (filterList) filterList.innerHTML = '';
+
+  // Clear chart
+  try { Plotly.purge('chart'); } catch (_) {}
+  const chart = document.getElementById('chart');
+  if (chart && !document.getElementById('emptyState')) {
+    const empty = document.createElement('div');
+    empty.className = 'empty-state';
+    empty.id = 'emptyState';
+    empty.innerHTML = `
+      <div class="icon">📈</div>
+      <p>Open a CSV or TSV file to start</p>
+      <small>Drag and drop, paste (Ctrl/Cmd+V), or click "Open file" above</small>
+    `;
+    chart.appendChild(empty);
+  }
+}
 
 function shuffleColors() {
   function hslToHex(h, s, l) {
@@ -998,6 +1074,55 @@ document.addEventListener('drop', e => {
   dragCounter = 0;
   dropOverlay.classList.remove('active');
   if (e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
+});
+
+// Paste TSV/CSV from clipboard (Ctrl/Cmd+V)
+document.addEventListener('paste', e => {
+  // Avoid hijacking paste inside text inputs (formula/filter/etc.)
+  const t = e.target;
+  const isEditableTarget = (t && (
+    t.tagName === 'INPUT' ||
+    t.tagName === 'TEXTAREA' ||
+    t.isContentEditable
+  ));
+  if (isEditableTarget) return;
+
+  const cd = e.clipboardData;
+  if (!cd) return;
+
+  // Prefer plain text (spreadsheets often also provide image/png).
+  const text = cd.getData('text/plain');
+  if (text) {
+    const normalized = text.replace(/\r\n/g, '\n');
+    // Heuristic: must look like delimited table (header + at least one row)
+    const lines = normalized.trim().split('\n');
+    if (lines.length >= 2) {
+      const first = lines[0];
+      const second = lines[1];
+      const tabLike = first.includes('\t') && second.includes('\t');
+      const csvLike = first.includes(',') && second.includes(',');
+      if (tabLike || csvLike) {
+        e.preventDefault();
+        fileName = tabLike ? 'clipboard.tsv' : 'clipboard.csv';
+        parseData(normalized, fileName);
+        return;
+      }
+    }
+  }
+
+  // If clipboard contains a file, use it (but ignore images).
+  const items = cd.items ? Array.from(cd.items) : [];
+  const fileItem = items.find(it => it.kind === 'file' && !String(it.type || '').startsWith('image/'));
+  if (fileItem) {
+    const f = fileItem.getAsFile();
+    if (f) {
+      e.preventDefault();
+      loadFile(f);
+    }
+    return;
+  }
+
+  // Otherwise, let default paste happen (or do nothing).
 });
 
 function loadFile(file) {
@@ -2134,12 +2259,70 @@ function toggleSwitch(el) {
 
 // PNG save
 document.getElementById('savePng').addEventListener('click', () => {
-  Plotly.downloadImage('chart', {
-    format: 'png',
-    width: 1920,
-    height: 1080,
-    filename: fileName ? fileName.replace(/\.[^.]+$/, '') + '_chart' : 'chart',
-    scale: 2,
+  const chartEl = document.getElementById('chart');
+  if (!chartEl || !chartEl.data) return;
+
+  // Export target: 6x4 inches @ 300 DPI, 24pt font
+  const DPI = 100;
+  const WIDTH_IN = 6;
+  const HEIGHT_IN = 4;
+  const widthPx = Math.round(WIDTH_IN * DPI);
+  const heightPx = Math.round(HEIGHT_IN * DPI);
+  const fontPx = Math.round((8 / 72) * DPI); // pt -> px at target DPI
+
+  const layout = chartEl.layout || {};
+  const get = (obj, path, fallback) => {
+    try {
+      return path.split('.').reduce((o, k) => (o && o[k] !== undefined ? o[k] : undefined), obj) ?? fallback;
+    } catch (_) { return fallback; }
+  };
+
+  const orig = {
+    font: get(layout, 'font', undefined),
+    titleFontSize: get(layout, 'title.font.size', undefined),
+    legendFontSize: get(layout, 'legend.font.size', undefined),
+    xTickFontSize: get(layout, 'xaxis.tickfont.size', undefined),
+    yTickFontSize: get(layout, 'yaxis.tickfont.size', undefined),
+    y2TickFontSize: get(layout, 'yaxis2.tickfont.size', undefined),
+    xTitleFontSize: get(layout, 'xaxis.title.font.size', undefined),
+    yTitleFontSize: get(layout, 'yaxis.title.font.size', undefined),
+    y2TitleFontSize: get(layout, 'yaxis2.title.font.size', undefined),
+  };
+
+  const patch = {
+    'font.size': fontPx,
+    'title.font.size': fontPx,
+    'legend.font.size': fontPx,
+    'xaxis.tickfont.size': fontPx,
+    'yaxis.tickfont.size': fontPx,
+    'yaxis2.tickfont.size': fontPx,
+    'xaxis.title.font.size': fontPx,
+    'yaxis.title.font.size': fontPx,
+    'yaxis2.title.font.size': fontPx,
+  };
+
+  const restore = {
+    'font': orig.font,
+    'title.font.size': orig.titleFontSize,
+    'legend.font.size': orig.legendFontSize,
+    'xaxis.tickfont.size': orig.xTickFontSize,
+    'yaxis.tickfont.size': orig.yTickFontSize,
+    'yaxis2.tickfont.size': orig.y2TickFontSize,
+    'xaxis.title.font.size': orig.xTitleFontSize,
+    'yaxis.title.font.size': orig.yTitleFontSize,
+    'yaxis2.title.font.size': orig.y2TitleFontSize,
+  };
+
+  Plotly.relayout(chartEl, patch).then(() => {
+    return Plotly.downloadImage(chartEl, {
+      format: 'png',
+      width: widthPx,
+      height: heightPx,
+      filename: fileName ? fileName.replace(/\.[^.]+$/, '') + '_chart_6x4in_24pt' : 'chart_6x4in_24pt',
+      scale: 1,
+    });
+  }).finally(() => {
+    try { Plotly.relayout(chartEl, restore); } catch (_) {}
   });
 });
 
