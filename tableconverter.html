@@ -179,10 +179,8 @@
     margin-top: 8px;
   }
 
-  .preview-section {
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
+  .preview-panel {
+    margin-top: 20px;
   }
 
   .markdown-preview {
@@ -285,13 +283,14 @@
         <button class="btn btn-copy" id="btnDownload">💾 Download file</button>
       </div>
       <div class="error-msg" id="errorMsg"></div>
-      <div class="preview-section" id="markdownPreviewSection" hidden>
-        <div class="panel-header" style="margin-bottom: 0;">
-          <span class="panel-title">Markdown Preview</span>
-        </div>
-        <div class="markdown-preview" id="markdownPreview"></div>
-      </div>
     </div>
+  </div>
+
+  <div class="panel preview-panel" id="markdownPreviewSection" hidden>
+    <div class="panel-header" style="margin-bottom: 0;">
+      <span class="panel-title">Markdown Preview</span>
+    </div>
+    <div class="markdown-preview" id="markdownPreview"></div>
   </div>
 </div>
 
@@ -704,8 +703,9 @@
     markdownPreview.innerHTML = '';
   }
 
-  function renderMarkdownPreview(rows) {
+  function renderMarkdownPreview(markdownText) {
     clearMarkdownPreview();
+    const rows = parseMarkdown(markdownText);
     if (!rows.length) return;
 
     const normalizedRows = normalizeRows(rows);
@@ -771,14 +771,11 @@
         rows = transposeRows(rows);
       }
       const result = convert(rows, outputFmt);
+      const markdownResult = toMarkdown(rows);
       outputEl.value = result;
       updateStats(inputStats, parsedRows, 'Input');
       updateStats(outputStats, rows, 'Output');
-      if (outputFmt === 'markdown') {
-        renderMarkdownPreview(rows);
-      } else {
-        clearMarkdownPreview();
-      }
+      renderMarkdownPreview(markdownResult);
     } catch (e) {
       errorMsg.textContent = 'Error: ' + e.message;
       outputEl.value = '';
