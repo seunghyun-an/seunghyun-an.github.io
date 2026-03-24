@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Table Converter - TSV, CSV, Gnuplot</title>
+<title>Table Converter - TSV, CSV, Markdown, LaTeX, Gnuplot</title>
 <style>
   :root {
     --bg: #0f1117;
@@ -178,6 +178,56 @@
     color: var(--text-dim);
     margin-top: 8px;
   }
+
+  .preview-section {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+  }
+
+  .markdown-preview {
+    margin-top: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface2);
+    overflow: auto;
+  }
+
+  .markdown-preview table {
+    width: 100%;
+    min-width: 420px;
+    border-collapse: collapse;
+  }
+
+  .markdown-preview th,
+  .markdown-preview td {
+    padding: 10px 12px;
+    border-right: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    text-align: left;
+    vertical-align: top;
+  }
+
+  .markdown-preview th {
+    background: var(--accent-bg);
+    font-weight: 600;
+  }
+
+  .markdown-preview th:last-child,
+  .markdown-preview td:last-child {
+    border-right: 0;
+  }
+
+  .markdown-preview tbody tr:last-child td {
+    border-bottom: 0;
+  }
+
+  .preview-empty {
+    padding: 16px;
+    color: var(--text-dim);
+    font-size: 13px;
+  }
 </style>
 </head>
 <body>
@@ -187,7 +237,7 @@
     <button type="button" id="themeToggle" style="padding:6px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:14px" title="Light/Dark mode">🌙</button>
   </div>
   <p class="subtitle">
-    Convert between TSV, CSV, and Gnuplot data formats. Paste data from spreadsheets (Excel, Google Sheets) into the <strong>text area</strong>; it is converted to tab-separated text.
+    Convert between TSV, CSV, Markdown, LaTeX, and Gnuplot data formats. Paste data from spreadsheets (Excel, Google Sheets) into the <strong>text area</strong>; it is converted to tab-separated text.
     <span class="tip">💡 If it pastes as image: Copy (Ctrl+C) from the source, then click the input area here and paste (Ctrl+V). Most spreadsheets paste as tab-separated text into a plain textarea.</span>
   </p>
 
@@ -199,6 +249,8 @@
           <option value="auto">Auto-detect</option>
           <option value="tsv">TSV (tab)</option>
           <option value="csv">CSV (comma)</option>
+          <option value="markdown">Markdown</option>
+          <option value="latex">LaTeX</option>
           <option value="gnuplot">Gnuplot (space/tab)</option>
         </select>
       </div>
@@ -221,6 +273,8 @@
         <select id="outputFormat">
           <option value="tsv">TSV (tab)</option>
           <option value="csv">CSV (comma)</option>
+          <option value="markdown">Markdown</option>
+          <option value="latex">LaTeX</option>
           <option value="gnuplot">Gnuplot (space)</option>
         </select>
       </div>
@@ -231,6 +285,12 @@
         <button class="btn btn-copy" id="btnDownload">💾 Download file</button>
       </div>
       <div class="error-msg" id="errorMsg"></div>
+      <div class="preview-section" id="markdownPreviewSection" hidden>
+        <div class="panel-header" style="margin-bottom: 0;">
+          <span class="panel-title">Markdown Preview</span>
+        </div>
+        <div class="markdown-preview" id="markdownPreview"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -248,6 +308,8 @@
   const errorMsg = document.getElementById('errorMsg');
   const inputStats = document.getElementById('inputStats');
   const outputStats = document.getElementById('outputStats');
+  const markdownPreviewSection = document.getElementById('markdownPreviewSection');
+  const markdownPreview = document.getElementById('markdownPreview');
 
   // Paste handler: only intercept when HTML contains <table> (e.g. Excel).
   // VSCode pastes both text/html and text/plain; if no table, we don't preventDefault so plain text paste works.
@@ -332,9 +394,156 @@
     return rows;
   }
 
+  function splitMarkdownRow(line) {
+    let trimmed = line.trim();
+    if (trimmed.startsWith('|')) trimmed = trimmed.slice(1);
+    if (trimmed.endsWith('|')) trimmed = trimmed.slice(0, -1);
+    const cells = [];
+    let current = '';
+    for (let i = 0; i < trimmed.length; i++) {
+      const c = trimmed[i];
+      if (c === '\\' && trimmed[i + 1] === '|') {
+        current += '|';
+        i++;
+        continue;
+      }
+      if (c === '|') {
+        cells.push(current.trim().replace(/<br\s*\/?>/gi, ' '));
+        current = '';
+        continue;
+      }
+      current += c;
+    }
+    cells.push(current.trim().replace(/<br\s*\/?>/gi, ' '));
+    return cells;
+  }
+
+  function isMarkdownSeparatorLine(line) {
+    const trimmed = line.trim();
+    if (!trimmed.includes('-')) return false;
+    let normalized = trimmed;
+    if (normalized.startsWith('|')) normalized = normalized.slice(1);
+    if (normalized.endsWith('|')) normalized = normalized.slice(0, -1);
+    const parts = normalized.split('|').map(function(part) { return part.trim(); }).filter(Boolean);
+    return parts.length > 0 && parts.every(function(part) {
+      return /^:?-{3,}:?$/.test(part);
+    });
+  }
+
+  function parseMarkdown(text) {
+    const lines = text.split(/\r?\n/).map(function(line) { return line.trim(); }).filter(Boolean);
+    const rows = [];
+    lines.forEach(function(line, index) {
+      if (index === 1 && isMarkdownSeparatorLine(line)) return;
+      if (!line.includes('|')) return;
+      rows.push(splitMarkdownRow(line));
+    });
+    return rows;
+  }
+
+  function stripLatexComments(text) {
+    return text.split(/\r?\n/).map(function(line) {
+      let result = '';
+      let escaped = false;
+      for (let i = 0; i < line.length; i++) {
+        const c = line[i];
+        if (c === '%' && !escaped) break;
+        result += c;
+        escaped = c === '\\' && !escaped;
+        if (c !== '\\') escaped = false;
+      }
+      return result;
+    }).join('\n');
+  }
+
+  function splitLatexRow(rowText) {
+    const cells = [];
+    let current = '';
+    let depth = 0;
+    for (let i = 0; i < rowText.length; i++) {
+      const c = rowText[i];
+      const prev = i > 0 ? rowText[i - 1] : '';
+      if (c === '{' && prev !== '\\') depth++;
+      if (c === '}' && prev !== '\\' && depth > 0) depth--;
+      if (c === '&' && prev !== '\\' && depth === 0) {
+        cells.push(current.trim());
+        current = '';
+        continue;
+      }
+      current += c;
+    }
+    if (current.trim() || cells.length) {
+      cells.push(current.trim());
+    }
+    return cells;
+  }
+
+  function cleanLatexCell(cell) {
+    return cell
+      .replace(/^\\multirow\{\d+\}\{[^}]*\}\{([\s\S]*)\}$/, '$1')
+      .replace(/^\\multicolumn\{\d+\}\{[^}]*\}\{([\s\S]*)\}$/, '$1')
+      .replace(/\\textbf\{([\s\S]*?)\}/g, '$1')
+      .replace(/\\centering/g, '')
+      .replace(/\\scriptsize/g, '')
+      .replace(/\$\\sim\$/g, '~')
+      .replace(/\\textasciitilde\{\}/g, '~')
+      .replace(/\\textbackslash\{\}/g, '\\')
+      .replace(/\\textasciicircum\{\}/g, '^')
+      .replace(/\\([#$%&_{}])/g, '$1')
+      .replace(/\s+/g, ' ')
+      .replace(/^\{|\}$/g, '')
+      .trim();
+  }
+
+  function expandLatexCell(cell) {
+    const multicolumnMatch = cell.match(/^\\multicolumn\{(\d+)\}\{[^}]*\}\{([\s\S]*)\}$/);
+    if (multicolumnMatch) {
+      const span = Math.max(Number(multicolumnMatch[1]) || 1, 1);
+      const value = cleanLatexCell(multicolumnMatch[2]);
+      return [value].concat(Array(span - 1).fill(''));
+    }
+    return [cleanLatexCell(cell)];
+  }
+
+  function parseLatex(text) {
+    const source = stripLatexComments(text);
+    const tabularMatch = source.match(/\\begin\{tabular\}\{[^}]*\}([\s\S]*?)\\end\{tabular\}/);
+    const body = tabularMatch ? tabularMatch[1] : source;
+    const chunks = body.split(/\\\\(?:\s*\[[^\]]*\])?/);
+    const rows = [];
+
+    chunks.forEach(function(chunk) {
+      const cleanedChunk = chunk
+        .replace(/\\hline/g, ' ')
+        .replace(/\\cline\{[^}]*\}/g, ' ')
+        .trim();
+      if (!cleanedChunk) return;
+      const rawCells = splitLatexRow(cleanedChunk);
+      if (!rawCells.length) return;
+      const row = [];
+      rawCells.forEach(function(cell) {
+        expandLatexCell(cell).forEach(function(expanded) {
+          row.push(expanded);
+        });
+      });
+      if (row.some(function(cell) { return cell !== ''; })) {
+        rows.push(row);
+      }
+    });
+
+    return rows;
+  }
+
+  function looksLikeMarkdownTable(lines) {
+    return lines.length >= 2 && lines[0].includes('|') && isMarkdownSeparatorLine(lines[1]);
+  }
+
   function detectFormat(text) {
-    const firstLine = text.split(/\r?\n/)[0] || '';
+    const lines = text.split(/\r?\n/).map(function(line) { return line.trim(); }).filter(Boolean);
+    const firstLine = lines[0] || '';
     if (firstLine.includes('"') && firstLine.includes(',')) return 'csv';
+    if (/\\begin\{tabular\}/.test(text) || /\\begin\{table\}/.test(text)) return 'latex';
+    if (looksLikeMarkdownTable(lines)) return 'markdown';
     if (firstLine.includes('\t')) return 'tsv';
     if (firstLine.match(/^\s*#/) || firstLine.match(/^\S+\s+\S+/)) return 'gnuplot';
     if (firstLine.includes(',')) return 'csv';
@@ -346,6 +555,8 @@
     const fmt = format === 'auto' ? detectFormat(text) : format;
     if (fmt === 'csv') return parseCsv(text);
     if (fmt === 'tsv') return parseTsv(text);
+    if (fmt === 'markdown') return parseMarkdown(text);
+    if (fmt === 'latex') return parseLatex(text);
     if (fmt === 'gnuplot') return parseGnuplot(text);
     return parseTsv(text);
   }
@@ -376,9 +587,95 @@
     }).join('\n');
   }
 
+  function normalizeRows(rows) {
+    if (!rows.length) return [];
+    const maxCols = Math.max.apply(null, rows.map(function(row) { return row.length; }));
+    return rows.map(function(row) {
+      const normalized = row.slice();
+      while (normalized.length < maxCols) normalized.push('');
+      return normalized;
+    });
+  }
+
+  function escapeMarkdownCell(val) {
+    return String(val)
+      .replace(/\|/g, '\\|')
+      .replace(/\r?\n/g, '<br>');
+  }
+
+  function toMarkdown(rows) {
+    const normalizedRows = normalizeRows(rows);
+    if (!normalizedRows.length) return '';
+    const header = normalizedRows[0];
+    const separator = header.map(function() { return '---'; });
+    const lines = [
+      '| ' + header.map(escapeMarkdownCell).join(' | ') + ' |',
+      '| ' + separator.join(' | ') + ' |'
+    ];
+    normalizedRows.slice(1).forEach(function(row) {
+      lines.push('| ' + row.map(escapeMarkdownCell).join(' | ') + ' |');
+    });
+    return lines.join('\n');
+  }
+
+  function escapeLatexCell(val) {
+    return String(val)
+      .replace(/\\/g, '\\textbackslash{}')
+      .replace(/&/g, '\\&')
+      .replace(/%/g, '\\%')
+      .replace(/\$/g, '\\$')
+      .replace(/#/g, '\\#')
+      .replace(/_/g, '\\_')
+      .replace(/{/g, '\\{')
+      .replace(/}/g, '\\}')
+      .replace(/\^/g, '\\textasciicircum{}')
+      .replace(/~/g, '$\\sim$');
+  }
+
+  function toLatex(rows) {
+    const normalizedRows = normalizeRows(rows);
+    if (!normalizedRows.length) return '';
+
+    const maxCols = normalizedRows[0].length;
+    const spec = Array(maxCols).fill('c').join('|');
+    const lines = [
+      '\\begin{table}[tp]',
+      '\\centering',
+      '\\scriptsize',
+      '    \\begin{tabular}{' + spec + '}',
+      '    \\hline'
+    ];
+
+    const header = normalizedRows[0].map(function(cell) {
+      return '\\textbf{' + escapeLatexCell(cell) + '}';
+    }).join(' & ');
+    lines.push('    ' + header + ' \\\\');
+    lines.push('    \\hline');
+    lines.push('    \\hline');
+
+    normalizedRows.slice(1).forEach(function(row, index) {
+      const suffix = index === normalizedRows.length - 2 ? '' : ' ';
+      lines.push('    ' + row.map(escapeLatexCell).join(' & ') + ' \\\\');
+      lines.push('    \\hline' + suffix);
+    });
+
+    if (normalizedRows.length === 1) {
+      lines.push('    \\hline');
+    }
+
+    lines.push('    \\end{tabular}');
+    lines.push('    \\vspace{0.5\\baselineskip}');
+    lines.push('    \\caption{Add caption here.}');
+    lines.push('    \\label{tbl:converted-table}');
+    lines.push('\\end{table}');
+    return lines.join('\n');
+  }
+
   function convert(rows, format) {
     if (format === 'csv') return toCsv(rows);
     if (format === 'tsv') return toTsv(rows);
+    if (format === 'markdown') return toMarkdown(rows);
+    if (format === 'latex') return toLatex(rows);
     if (format === 'gnuplot') return toGnuplot(rows);
     return toTsv(rows);
   }
@@ -393,14 +690,59 @@
     return result;
   }
 
-  function updateStats(el, text, label) {
-    if (!text.trim()) {
+  function updateStats(el, rows, label) {
+    if (!rows.length) {
       el.textContent = '';
       return;
     }
-    const lines = text.trim().split(/\r?\n/).filter(function(l) { return l.trim(); });
-    const cols = lines[0] ? lines[0].split(/\t|,/).length : 0;
-    el.textContent = label + ': ' + lines.length + ' rows × ' + cols + ' cols';
+    const cols = Math.max.apply(null, rows.map(function(row) { return row.length; }));
+    el.textContent = label + ': ' + rows.length + ' rows × ' + cols + ' cols';
+  }
+
+  function clearMarkdownPreview() {
+    markdownPreviewSection.hidden = true;
+    markdownPreview.innerHTML = '';
+  }
+
+  function renderMarkdownPreview(rows) {
+    clearMarkdownPreview();
+    if (!rows.length) return;
+
+    const normalizedRows = normalizeRows(rows);
+    const table = document.createElement('table');
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    normalizedRows[0].forEach(function(cell) {
+      const th = document.createElement('th');
+      th.textContent = cell;
+      headerRow.appendChild(th);
+    });
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    if (normalizedRows.length > 1) {
+      const tbody = document.createElement('tbody');
+      normalizedRows.slice(1).forEach(function(row) {
+        const tr = document.createElement('tr');
+        row.forEach(function(cell) {
+          const td = document.createElement('td');
+          td.textContent = cell;
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+    }
+
+    markdownPreview.appendChild(table);
+    markdownPreviewSection.hidden = false;
+  }
+
+  function setSelectValue(selectEl, value, fallback) {
+    const hasOption = Array.from(selectEl.options).some(function(option) {
+      return option.value === value;
+    });
+    selectEl.value = hasOption ? value : fallback;
   }
 
   function doConvert() {
@@ -408,28 +750,41 @@
     const text = inputEl.value.trim();
     if (!text) {
       outputEl.value = '';
+      inputStats.textContent = '';
       outputStats.textContent = '';
+      clearMarkdownPreview();
       return;
     }
     try {
       const inputFmt = inputFormatEl.value;
       const outputFmt = outputFormatEl.value;
-      let rows = parse(text, inputFmt);
-      if (!rows.length) {
+      const parsedRows = parse(text, inputFmt);
+      if (!parsedRows.length) {
         outputEl.value = '';
+        inputStats.textContent = '';
         outputStats.textContent = '';
+        clearMarkdownPreview();
         return;
       }
+      let rows = parsedRows;
       if (document.getElementById('chkTranspose').checked) {
         rows = transposeRows(rows);
       }
       const result = convert(rows, outputFmt);
       outputEl.value = result;
-      updateStats(inputStats, text, 'Input');
-      updateStats(outputStats, result, 'Output');
+      updateStats(inputStats, parsedRows, 'Input');
+      updateStats(outputStats, rows, 'Output');
+      if (outputFmt === 'markdown') {
+        renderMarkdownPreview(rows);
+      } else {
+        clearMarkdownPreview();
+      }
     } catch (e) {
       errorMsg.textContent = 'Error: ' + e.message;
       outputEl.value = '';
+      inputStats.textContent = '';
+      outputStats.textContent = '';
+      clearMarkdownPreview();
     }
   }
 
@@ -446,8 +801,8 @@
       inputEl.value = out;
       outputEl.value = inp;
       const of = outputFormatEl.value;
-      outputFormatEl.value = inputFormatEl.value;
-      inputFormatEl.value = of;
+      setSelectValue(outputFormatEl, inputFormatEl.value, 'tsv');
+      setSelectValue(inputFormatEl, of, 'auto');
       doConvert();
     }
   });
@@ -463,9 +818,16 @@
     const text = outputEl.value;
     if (!text.trim()) return;
     const fmt = outputFormatEl.value;
-    const ext = fmt === 'tsv' ? 'tsv' : fmt === 'csv' ? 'csv' : 'dat';
-    const mime = fmt === 'csv' ? 'text/csv' : 'text/plain';
-    const bom = fmt === 'csv' ? '\ufeff' : '';
+    const ext = fmt === 'tsv' ? 'tsv'
+      : fmt === 'csv' ? 'csv'
+      : fmt === 'markdown' ? 'md'
+      : fmt === 'latex' ? 'tex'
+      : 'dat';
+    const mime = fmt === 'csv' ? 'text/csv'
+      : fmt === 'markdown' ? 'text/markdown'
+      : fmt === 'latex' ? 'text/x-tex'
+      : 'text/plain';
+    const bom = fmt === 'csv' || fmt === 'markdown' ? '\ufeff' : '';
     const blob = new Blob([bom + text], { type: mime + ';charset=utf-8' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
