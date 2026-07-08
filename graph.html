@@ -653,12 +653,12 @@
     <div class="sidebar-section expandable">
       <div class="sidebar-section-header" onclick="toggleSection(this)">
         Data filter
-        <span class="tooltip-help" data-tip="Filter rows by expression.&#10;e.g. step_id > 100 && step_id < 200&#10;Operators: >, <, >=, <=, ==, !=, &&, ||&#10;Functions: abs, sqrt, log, etc.">ⓘ</span>
+        <span class="tooltip-help" data-tip="Filter rows by expression.&#10;e.g. step_id > 100 && step_id < 200&#10;String eq: status eq &quot;PASS&quot; or status == &quot;PASS&quot;&#10;Operators: >, <, >=, <=, ==, !=, eq, ne, &&, ||&#10;Functions: abs, sqrt, log, etc.">ⓘ</span>
         <span class="chevron">▼</span>
       </div>
       <div class="sidebar-section-body">
         <div class="filter-input-row">
-          <input type="text" id="filterExpr" placeholder="e.g. step_id > 100 && step_id < 200" onkeydown="if(event.key==='Enter') addFilter()">
+          <input type="text" id="filterExpr" placeholder="e.g. step_id > 100 && status eq &quot;PASS&quot;" onkeydown="if(event.key==='Enter') addFilter()">
           <button class="btn btn-sm btn-primary" onclick="addFilter()">Add</button>
         </div>
         <div class="filter-list" id="filterList"></div>
@@ -2050,6 +2050,64 @@ function escRegex(s) {
   return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
+function isEscapedChar(str, index) {
+  let backslashCount = 0;
+  for (let i = index - 1; i >= 0 && str[i] === '\\'; i--) {
+    backslashCount++;
+  }
+  return backslashCount % 2 === 1;
+}
+
+function transformOutsideQuotedStrings(expr, transformSegment) {
+  let result = '';
+  let segmentStart = 0;
+  let quote = null;
+
+  for (let i = 0; i < expr.length; i++) {
+    const ch = expr[i];
+    if (quote) {
+      if (ch === quote && !isEscapedChar(expr, i)) {
+        result += expr.slice(segmentStart, i + 1);
+        segmentStart = i + 1;
+        quote = null;
+      }
+      continue;
+    }
+
+    if (ch === '"' || ch === "'") {
+      result += transformSegment(expr.slice(segmentStart, i));
+      segmentStart = i;
+      quote = ch;
+    }
+  }
+
+  if (segmentStart < expr.length) {
+    const tail = expr.slice(segmentStart);
+    result += quote ? tail : transformSegment(tail);
+  } else if (segmentStart === expr.length && !quote) {
+    result += transformSegment('');
+  }
+
+  return result;
+}
+
+function compileFilterExpression(expr, allNames, mathFns) {
+  return transformOutsideQuotedStrings(expr, segment => {
+    let evalExpr = segment.replace(/\beq\b/gi, '===').replace(/\bne\b/gi, '!==');
+
+    for (const n of allNames) {
+      const sid = sanitizeId(n);
+      evalExpr = evalExpr.replace(new RegExp('(?<![a-zA-Z0-9_])' + escRegex(n) + '(?![a-zA-Z0-9_])', 'g'), `scope["${sid}"]`);
+    }
+    for (const fn of Object.keys(mathFns)) {
+      evalExpr = evalExpr.replace(new RegExp('(?<![a-zA-Z0-9_])' + fn + '(?=\\()', 'g'), `scope["${fn}"]`);
+      evalExpr = evalExpr.replace(new RegExp('(?<![a-zA-Z0-9_."])' + fn + '(?![a-zA-Z0-9_("])', 'g'), `scope["${fn}"]`);
+    }
+
+    return evalExpr;
+  });
+}
+
 // ========== FILTER ENGINE ==========
 function addFilter() {
   const input = document.getElementById('filterExpr');
@@ -2101,15 +2159,7 @@ function applyFilters() {
   allNames.sort((a, b) => b.length - a.length);
 
   const compiledFilters = activeFilters.map(f => {
-    let evalExpr = f.expr;
-    for (const n of allNames) {
-      const sid = sanitizeId(n);
-      evalExpr = evalExpr.replace(new RegExp('(?<![a-zA-Z0-9_])' + escRegex(n) + '(?![a-zA-Z0-9_])', 'g'), `scope["${sid}"]`);
-    }
-    for (const fn of Object.keys(mathFns)) {
-      evalExpr = evalExpr.replace(new RegExp('(?<![a-zA-Z0-9_])' + fn + '(?=\\()', 'g'), `scope["${fn}"]`);
-      evalExpr = evalExpr.replace(new RegExp('(?<![a-zA-Z0-9_."])' + fn + '(?![a-zA-Z0-9_("])', 'g'), `scope["${fn}"]`);
-    }
+    const evalExpr = compileFilterExpression(f.expr, allNames, mathFns);
     try {
       const fn = new Function('scope', `"use strict"; return !!(${evalExpr});`);
       return { fn, error: false, id: f.id };
@@ -2574,4 +2624,3 @@ document.addEventListener('keydown', e => {
 </script>
 </body>
 </html>
-
