@@ -653,12 +653,12 @@
     <div class="sidebar-section expandable">
       <div class="sidebar-section-header" onclick="toggleSection(this)">
         Data filter
-        <span class="tooltip-help" data-tip="Filter rows by expression.&#10;e.g. step_id > 100 && step_id < 200&#10;String eq: status eq &quot;PASS&quot; or status == &quot;PASS&quot;&#10;Operators: >, <, >=, <=, ==, !=, eq, ne, &&, ||&#10;Functions: abs, sqrt, log, etc.">ⓘ</span>
+        <span class="tooltip-help" data-tip="Filter rows by expression.&#10;e.g. step_id &gt; 100 &amp;&amp; status eq &quot;PASS&quot;&#10;Equality: status eq &quot;PASS&quot;&#10;eq/ne are strict; ==/!= coerce values.&#10;Operators: &gt;, &lt;, &gt;=, &lt;=, ==, !=, ===, !==, eq, ne, &amp;&amp;, ||&#10;Functions: abs, sqrt, log, etc.">ⓘ</span>
         <span class="chevron">▼</span>
       </div>
       <div class="sidebar-section-body">
         <div class="filter-input-row">
-          <input type="text" id="filterExpr" placeholder="e.g. step_id > 100 && status eq &quot;PASS&quot;" onkeydown="if(event.key==='Enter') addFilter()">
+          <input type="text" id="filterExpr" placeholder="e.g. step_id > 100 &amp;&amp; status eq &quot;PASS&quot;" onkeydown="if(event.key==='Enter') addFilter()">
           <button class="btn btn-sm btn-primary" onclick="addFilter()">Add</button>
         </div>
         <div class="filter-list" id="filterList"></div>
@@ -2091,21 +2091,69 @@ function transformOutsideQuotedStrings(expr, transformSegment) {
   return result;
 }
 
+function replaceNamedReferences(
+  segment,
+  names,
+  makeReference,
+  { blockAfterDot = false } = {}
+) {
+  const uniqueNames = [...new Set(
+    names.filter(name => typeof name === 'string' && name.length > 0)
+  )].sort((a, b) => b.length - a.length);
+
+  if (uniqueNames.length === 0) return segment;
+
+  const leftChars = blockAfterDot
+    ? 'a-zA-Z0-9_.'
+    : 'a-zA-Z0-9_';
+
+  const pattern = new RegExp(
+    '(^|[^' + leftChars + '])(' +
+      uniqueNames.map(escRegex).join('|') +
+    ')(?![a-zA-Z0-9_])',
+    'g'
+  );
+
+  return segment.replace(
+    pattern,
+    (match, prefix, name) => prefix + makeReference(name)
+  );
+}
+
 function compileFilterExpression(expr, allNames, mathFns) {
-  return transformOutsideQuotedStrings(expr, segment => {
-    let evalExpr = segment.replace(/\beq\b/gi, '===').replace(/\bne\b/gi, '!==');
-
-    for (const n of allNames) {
-      const sid = sanitizeId(n);
-      evalExpr = evalExpr.replace(new RegExp('(?<![a-zA-Z0-9_])' + escRegex(n) + '(?![a-zA-Z0-9_])', 'g'), `scope["${sid}"]`);
-    }
-    for (const fn of Object.keys(mathFns)) {
-      evalExpr = evalExpr.replace(new RegExp('(?<![a-zA-Z0-9_])' + fn + '(?=\\()', 'g'), `scope["${fn}"]`);
-      evalExpr = evalExpr.replace(new RegExp('(?<![a-zA-Z0-9_."])' + fn + '(?![a-zA-Z0-9_("])', 'g'), `scope["${fn}"]`);
-    }
-
-    return evalExpr;
+  let hasTemplateLiteral = false;
+  transformOutsideQuotedStrings(expr, segment => {
+    if (segment.includes('`')) hasTemplateLiteral = true;
+    return segment;
   });
+  if (hasTemplateLiteral) {
+    throw new SyntaxError(
+      'Template literals are not supported; use single or double quotes.'
+    );
+  }
+
+  let evalExpr = transformOutsideQuotedStrings(expr, segment =>
+    replaceNamedReferences(
+      segment,
+      allNames,
+      name => `scope[${JSON.stringify(name)}]`
+    )
+  );
+
+  evalExpr = transformOutsideQuotedStrings(evalExpr, segment =>
+    segment.replace(/\beq\b/gi, '===').replace(/\bne\b/gi, '!==')
+  );
+
+  evalExpr = transformOutsideQuotedStrings(evalExpr, segment =>
+    replaceNamedReferences(
+      segment,
+      Object.keys(mathFns),
+      name => `scope[${JSON.stringify(name)}]`,
+      { blockAfterDot: true }
+    )
+  );
+
+  return evalExpr;
 }
 
 // ========== FILTER ENGINE ==========
@@ -2159,20 +2207,28 @@ function applyFilters() {
   allNames.sort((a, b) => b.length - a.length);
 
   const compiledFilters = activeFilters.map(f => {
-    const evalExpr = compileFilterExpression(f.expr, allNames, mathFns);
     try {
+      const evalExpr = compileFilterExpression(f.expr, allNames, mathFns);
       const fn = new Function('scope', `"use strict"; return !!(${evalExpr});`);
-      return { fn, error: false, id: f.id };
+      return {
+        fn,
+        error: false,
+        errorMessage: '',
+        id: f.id,
+      };
     } catch (e) {
       console.warn(`Filter compile error for "${f.expr}":`, e);
-      return { fn: null, error: true, id: f.id };
+      return { fn: null, error: true, errorMessage: e.message, id: f.id };
     }
   });
 
   // Mark errored filters
   for (const cf of compiledFilters) {
     const fObj = filters.find(f => f.id === cf.id);
-    if (fObj) fObj._error = cf.error;
+    if (fObj) {
+      fObj._error = cf.error;
+      fObj._errorMessage = cf.errorMessage;
+    }
   }
 
   const validFilters = compiledFilters.filter(cf => !cf.error);
@@ -2184,17 +2240,25 @@ function applyFilters() {
 
   const indices = [];
   for (let i = 0; i < rowCount; i++) {
-    const scope = { ...mathFns };
-    for (const c of columns) scope[sanitizeId(c)] = rawData[c][i];
+    const scope = Object.assign(Object.create(null), mathFns);
+    for (const c of columns) scope[c] = rawData[c][i];
     for (const dc of derivedCols) {
-      if (dc.data) scope[sanitizeId(dc.name)] = dc.data[i];
+      if (dc.data) scope[dc.name] = dc.data[i];
     }
 
     let pass = true;
     for (const cf of validFilters) {
       try {
         if (!cf.fn(scope)) { pass = false; break; }
-      } catch { pass = false; break; }
+      } catch (e) {
+        const fObj = filters.find(f => f.id === cf.id);
+        if (fObj) {
+          fObj._error = true;
+          fObj._errorMessage = e.message;
+        }
+        pass = false;
+        break;
+      }
     }
     if (pass) indices.push(i);
   }
@@ -2219,9 +2283,13 @@ function renderFilterList() {
   list.innerHTML = filters.map(f => {
     const errClass = f._error ? ' error' : '';
     const toggleClass = f.enabled ? '' : ' off';
+    const title = f._errorMessage
+      ? `${f.expr}\nError: ${f._errorMessage}`
+      : f.expr;
+
     return `<div class="filter-tag${errClass}">
       <div class="filter-toggle${toggleClass}" onclick="toggleFilter(${f.id})"></div>
-      <span class="filter-expr" title="${esc(f.expr)}">${esc(f.expr)}</span>
+      <span class="filter-expr" title="${esc(title)}">${esc(f.expr)}</span>
       <span class="remove" onclick="removeFilter(${f.id})">&times;</span>
     </div>`;
   }).join('');
