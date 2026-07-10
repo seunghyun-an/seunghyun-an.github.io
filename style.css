@@ -14,7 +14,7 @@ body {
     background-color: var(--color-bg);
     line-height: 1.6;
     margin: 0 auto;
-    padding: 2rem;
+    padding: clamp(1.25rem, 4vw, 2rem);
     max-width: var(--max-width);
 }
 
@@ -22,7 +22,13 @@ header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
+    gap: 2rem;
     margin-bottom: 2rem;
+}
+
+.header-content {
+    flex: 1;
+    min-width: 0;
 }
 
 h1 {
@@ -54,6 +60,12 @@ a {
 
 a:hover {
     text-decoration: underline;
+    text-underline-offset: 0.15em;
+}
+
+a:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
 }
 
 .profile-image-placeholder {
@@ -65,11 +77,17 @@ a:hover {
     align-items: center;
     justify-content: flex-start;
     text-align: center;
-    color: #888;
+    color: var(--color-subtext);
     font-size: 0.8rem;
     overflow: visible;
     flex-shrink: 0;
-    margin-left: 2rem;
+    margin-left: 0;
+}
+
+.profile-email {
+    font-size: 0.8rem;
+    margin-top: 5px;
+    text-align: center;
 }
 
 .profile-image-placeholder img {
@@ -132,6 +150,10 @@ li {
     margin-left: 1rem;
 }
 
+.location {
+    color: var(--color-subtext);
+}
+
 .advisor {
     font-size: 0.95rem;
 }
@@ -172,24 +194,35 @@ footer h2 {
 }
 
 /* Mobile adjustments */
-@media (max-width: 600px) {
+@media (max-width: 760px) {
     header {
         flex-direction: column-reverse;
         align-items: center;
-        text-align: center;
-    }
-    
-    .profile-image-placeholder {
-        margin-left: 0;
-        margin-bottom: 1.5rem;
+        gap: 1.25rem;
     }
 
-    .entry-header, .entry-sub {
+    .header-content {
+        width: 100%;
+        text-align: left;
+    }
+
+    .header-content h1 {
+        text-align: center;
+    }
+
+    .profile-image-placeholder {
+        margin-left: 0;
+        margin-bottom: 0;
+    }
+
+    .entry-header,
+    .entry-sub {
         flex-direction: column;
         align-items: flex-start;
     }
 
-    .location, .date {
+    .location,
+    .date {
         margin-left: 0;
     }
 }
