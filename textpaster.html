@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text Paster - Rich Text to Markdown</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --surface2: #242836;
+    --border: #2e3348;
+    --text: #e4e6f0;
+    --text-dim: #8b8fa8;
+    --accent: #6c8cff;
+    --accent-hover: #8da6ff;
+    --accent-bg: rgba(108,140,255,0.12);
+    --radius: 8px;
+  }
+  :root.light {
+    --bg: #f5f6fa;
+    --surface: #ffffff;
+    --surface2: #eef0f6;
+    --border: #d8dbe6;
+    --text: #1a1d27;
+    --text-dim: #6b7085;
+    --accent: #4a6cf7;
+    --accent-hover: #3855d4;
+    --accent-bg: rgba(74,108,247,0.1);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  h1 { font-size: 24px; margin-bottom: 8px; }
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin-bottom: 24px;
+  }
+  .subtitle .tip {
+    display: inline-block;
+    margin-top: 8px;
+    padding: 6px 12px;
+    background: var(--accent-bg);
+    border-radius: var(--radius);
+    font-size: 12px;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .panel-title { font-size: 14px; font-weight: 600; }
+
+  .paste-area {
+    width: 100%;
+    min-height: 280px;
+    max-height: 520px;
+    overflow: auto;
+    padding: 16px;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.6;
+    outline: none;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .paste-area:focus,
+  .paste-area:hover {
+    border-color: var(--accent);
+    background: var(--accent-bg);
+  }
+  .paste-area:empty::before {
+    content: attr(data-placeholder);
+    color: var(--text-dim);
+    opacity: 0.8;
+    white-space: pre-wrap;
+    pointer-events: none;
+  }
+  .paste-area a { color: var(--accent); }
+  .paste-area img { max-width: 100%; height: auto; }
+
+  textarea {
+    width: 100%;
+    min-height: 280px;
+    max-height: 520px;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface2);
+    color: var(--text);
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 13px;
+    line-height: 1.5;
+    resize: vertical;
+  }
+  textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-bg);
+  }
+  textarea::placeholder { color: var(--text-dim); opacity: 0.7; }
+
+  .btn {
+    padding: 6px 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .btn:hover { border-color: var(--accent); background: var(--accent-bg); }
+  .btn-primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+  .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+
+  .actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+
+  .stats {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 8px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:8px">
+    <h1 style="margin-bottom:0"><a href="index.html" style="color:var(--text-dim);text-decoration:none;font-size:14px;margin-right:12px" title="Back to main site">← Home</a>Text Paster</h1>
+    <button type="button" id="themeToggle" style="padding:6px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:14px" title="Light/Dark mode">🌙</button>
+  </div>
+  <p class="subtitle">
+    Paste rich text (Word, Google Docs, web pages, Slack, etc.) and get Markdown.
+    <span class="tip">Paste into the left box (Ctrl/Cmd+V). HTML clipboard is converted to Markdown on the right.</span>
+  </p>
+
+  <div class="layout">
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Paste here (rich text)</span>
+        <button type="button" class="btn" id="btnClear">Clear</button>
+      </div>
+      <div
+        id="pasteArea"
+        class="paste-area"
+        contenteditable="true"
+        role="textbox"
+        aria-multiline="true"
+        data-placeholder="Paste rich text here…&#10;&#10;Supports headings, bold/italic, lists, links, tables, code blocks, and more."
+      ></div>
+      <div class="stats" id="inputStats"></div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Markdown</span>
+        <button type="button" class="btn btn-primary" id="btnCopy">Copy</button>
+      </div>
+      <textarea id="outputData" readonly placeholder="Markdown appears here after paste"></textarea>
+      <div class="stats" id="outputStats"></div>
+      <div class="actions">
+        <button type="button" class="btn" id="btnSelect">Select all</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const pasteArea = document.getElementById('pasteArea');
+  const outputEl = document.getElementById('outputData');
+  const inputStats = document.getElementById('inputStats');
+  const outputStats = document.getElementById('outputStats');
+  const btnCopy = document.getElementById('btnCopy');
+  const btnClear = document.getElementById('btnClear');
+  const btnSelect = document.getElementById('btnSelect');
+
+  function isBlock(tag) {
+    return /^(P|DIV|H[1-6]|LI|UL|OL|BLOCKQUOTE|PRE|TABLE|THEAD|TBODY|TR|SECTION|ARTICLE|HEADER|FOOTER|MAIN|ASIDE|FIGURE|FIGCAPTION|HR|DL|DT|DD)$/.test(tag);
+  }
+
+  function escapeMd(text) {
+    return String(text)
+      .replace(/\\/g, '\\\\')
+      .replace(/([*_`[~])/g, '\\$1');
+  }
+
+  function escapeLinkText(text) {
+    return String(text).replace(/([\\\[\]])/g, '\\$1');
+  }
+
+  function collapseWs(text) {
+    return String(text).replace(/[ \t\r\f\v]+/g, ' ');
+  }
+
+  function cleanClipboardHtml(html) {
+    return html
+      .replace(/<!--StartFragment-->/gi, '')
+      .replace(/<!--EndFragment-->/gi, '')
+      .replace(/<!--[\s\S]*?-->/g, '')
+      .replace(/<\/?(meta|link|style|script|xml|o:[^>\s]+)[^>]*>/gi, '');
+  }
+
+  function getMeaningfulChildren(node) {
+    return Array.from(node.childNodes).filter(function(child) {
+      if (child.nodeType === Node.TEXT_NODE) {
+        return child.textContent.replace(/\u00a0/g, ' ').trim() !== '';
+      }
+      if (child.nodeType !== Node.ELEMENT_NODE) return false;
+      const tag = child.tagName;
+      if (tag === 'BR') return true;
+      if (tag === 'STYLE' || tag === 'SCRIPT' || tag === 'META' || tag === 'LINK') return false;
+      return true;
+    });
+  }
+
+  function cellText(node) {
+    return convertChildren(node, { inline: true, inTable: true })
+      .replace(/\s*\n\s*/g, ' ')
+      .replace(/\|/g, '\\|')
+      .trim();
+  }
+
+  function convertTable(table) {
+    const rows = Array.from(table.querySelectorAll('tr'));
+    if (!rows.length) return '';
+
+    const matrix = rows.map(function(tr) {
+      return Array.from(tr.querySelectorAll('th, td')).map(cellText);
+    });
+    const cols = Math.max.apply(null, matrix.map(function(r) { return r.length; }));
+    if (!cols) return '';
+
+    const normalized = matrix.map(function(row) {
+      const copy = row.slice();
+      while (copy.length < cols) copy.push('');
+      return copy;
+    });
+
+    const lines = [];
+    lines.push('| ' + normalized[0].join(' | ') + ' |');
+    lines.push('| ' + normalized[0].map(function() { return '---'; }).join(' | ') + ' |');
+    normalized.slice(1).forEach(function(row) {
+      lines.push('| ' + row.join(' | ') + ' |');
+    });
+    return lines.join('\n') + '\n\n';
+  }
+
+  function listMarker(ol, index) {
+    return ol ? (index + 1) + '. ' : '- ';
+  }
+
+  function convertList(list, indent) {
+    indent = indent || 0;
+    const ol = list.tagName === 'OL';
+    const items = Array.from(list.children).filter(function(el) { return el.tagName === 'LI'; });
+    let out = '';
+    items.forEach(function(li, i) {
+      const prefix = '  '.repeat(indent) + listMarker(ol, i);
+      const parts = [];
+      let nested = '';
+      Array.from(li.childNodes).forEach(function(child) {
+        if (child.nodeType === Node.ELEMENT_NODE && (child.tagName === 'UL' || child.tagName === 'OL')) {
+          nested += convertList(child, indent + 1);
+        } else {
+          parts.push(convertNode(child, { inline: true }));
+        }
+      });
+      const text = collapseWs(parts.join('')).trim();
+      out += prefix + text + '\n';
+      out += nested;
+    });
+    return out + (indent === 0 ? '\n' : '');
+  }
+
+  function emphasisWrap(inner, marker) {
+    const trimmed = inner.replace(/^\s+|\s+$/g, '');
+    if (!trimmed) return inner;
+    const lead = inner.match(/^\s*/)[0];
+    const trail = inner.match(/\s*$/)[0];
+    return lead + marker + trimmed + marker + trail;
+  }
+
+  function convertNode(node, opts) {
+    opts = opts || {};
+    if (node.nodeType === Node.TEXT_NODE) {
+      let text = node.textContent.replace(/\u00a0/g, ' ');
+      if (opts.inCode) return text;
+      if (opts.inline || opts.inTable) return collapseWs(text);
+      return text.replace(/[ \t]+/g, ' ');
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+
+    const tag = node.tagName;
+    if (tag === 'STYLE' || tag === 'SCRIPT' || tag === 'META' || tag === 'LINK' || tag === 'TITLE' || tag === 'HEAD') {
+      return '';
+    }
+    if (tag === 'BR') return opts.inline || opts.inTable ? ' ' : '\n';
+    if (tag === 'HR') return '\n---\n\n';
+
+    if (tag === 'STRONG' || tag === 'B') {
+      return emphasisWrap(convertChildren(node, Object.assign({}, opts, { inline: true })), '**');
+    }
+    if (tag === 'EM' || tag === 'I') {
+      return emphasisWrap(convertChildren(node, Object.assign({}, opts, { inline: true })), '*');
+    }
+    if (tag === 'S' || tag === 'STRIKE' || tag === 'DEL') {
+      return emphasisWrap(convertChildren(node, Object.assign({}, opts, { inline: true })), '~~');
+    }
+    if (tag === 'CODE' && node.parentElement && node.parentElement.tagName !== 'PRE') {
+      const code = node.textContent.replace(/`/g, '\\`');
+      return '`' + code + '`';
+    }
+    if (tag === 'A') {
+      const href = (node.getAttribute('href') || '').trim();
+      const text = convertChildren(node, Object.assign({}, opts, { inline: true })).trim() || href;
+      if (!href || href.startsWith('javascript:')) return text;
+      return '[' + escapeLinkText(text) + '](' + href.replace(/[()]/g, '\\$&') + ')';
+    }
+    if (tag === 'IMG') {
+      const src = (node.getAttribute('src') || '').trim();
+      const alt = (node.getAttribute('alt') || '').trim();
+      if (!src) return alt;
+      return '![' + alt.replace(/[\[\]]/g, '') + '](' + src + ')';
+    }
+    if (tag === 'PRE') {
+      const codeEl = node.querySelector('code');
+      const code = (codeEl || node).textContent.replace(/\n$/, '');
+      let lang = '';
+      const cls = ((codeEl || node).getAttribute('class') || '');
+      const m = cls.match(/language-([a-z0-9_+-]+)/i) || cls.match(/lang-([a-z0-9_+-]+)/i);
+      if (m) lang = m[1];
+      return '\n```' + lang + '\n' + code + '\n```\n\n';
+    }
+    if (tag === 'H1') return '# ' + convertChildren(node, { inline: true }).trim() + '\n\n';
+    if (tag === 'H2') return '## ' + convertChildren(node, { inline: true }).trim() + '\n\n';
+    if (tag === 'H3') return '### ' + convertChildren(node, { inline: true }).trim() + '\n\n';
+    if (tag === 'H4') return '#### ' + convertChildren(node, { inline: true }).trim() + '\n\n';
+    if (tag === 'H5') return '##### ' + convertChildren(node, { inline: true }).trim() + '\n\n';
+    if (tag === 'H6') return '###### ' + convertChildren(node, { inline: true }).trim() + '\n\n';
+    if (tag === 'BLOCKQUOTE') {
+      const inner = convertChildren(node, {}).trim().split(/\n/).map(function(line) {
+        return '> ' + line;
+      }).join('\n');
+      return inner + '\n\n';
+    }
+    if (tag === 'UL' || tag === 'OL') return convertList(node, 0);
+    if (tag === 'TABLE') return convertTable(node);
+    if (tag === 'LI') {
+      return convertChildren(node, { inline: true }).trim() + '\n';
+    }
+    if (tag === 'P' || tag === 'FIGCAPTION') {
+      const text = convertChildren(node, { inline: true }).trim();
+      return text ? text + '\n\n' : '';
+    }
+    if (tag === 'SPAN' || tag === 'FONT' || tag === 'LABEL' || tag === 'U' || tag === 'MARK' || tag === 'SMALL' || tag === 'SUB' || tag === 'SUP') {
+      return convertChildren(node, opts);
+    }
+
+    const inner = convertChildren(node, opts);
+    if (opts.inline || opts.inTable) return inner;
+    if (isBlock(tag)) {
+      const trimmed = inner.replace(/^\n+|\n+$/g, '');
+      return trimmed ? trimmed + '\n\n' : '';
+    }
+    return inner;
+  }
+
+  function convertChildren(node, opts) {
+    return Array.from(node.childNodes).map(function(child) {
+      return convertNode(child, opts);
+    }).join('');
+  }
+
+  function htmlToMarkdown(html) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(cleanClipboardHtml(html), 'text/html');
+    const root = doc.body || doc;
+    let md = convertChildren(root, {});
+    md = md.replace(/\r\n/g, '\n');
+    md = md.replace(/[ \t]+\n/g, '\n');
+    md = md.replace(/\n{3,}/g, '\n\n');
+    return md.trim() + (md.trim() ? '\n' : '');
+  }
+
+  function setOutput(md) {
+    outputEl.value = md;
+    const lines = md ? md.split(/\n/).length : 0;
+    const chars = md.length;
+    outputStats.textContent = md ? (lines + ' lines · ' + chars + ' chars') : '';
+  }
+
+  function updateInputStats() {
+    const text = pasteArea.innerText || '';
+    const trimmed = text.trim();
+    inputStats.textContent = trimmed
+      ? (trimmed.split(/\n/).length + ' lines · ' + trimmed.length + ' chars')
+      : '';
+  }
+
+  function convertFromPasteArea() {
+    const html = pasteArea.innerHTML;
+    if (!html || html === '<br>') {
+      setOutput('');
+      updateInputStats();
+      return;
+    }
+    setOutput(htmlToMarkdown(html));
+    updateInputStats();
+  }
+
+  pasteArea.addEventListener('paste', function(e) {
+    e.preventDefault();
+    const html = e.clipboardData.getData('text/html');
+    const plain = e.clipboardData.getData('text/plain');
+
+    if (html && html.trim()) {
+      const cleaned = cleanClipboardHtml(html);
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(cleaned, 'text/html');
+      pasteArea.innerHTML = doc.body ? doc.body.innerHTML : cleaned;
+      setOutput(htmlToMarkdown(cleaned));
+    } else if (plain) {
+      pasteArea.textContent = plain;
+      setOutput(plain.replace(/\r\n/g, '\n').trim() + '\n');
+    }
+    updateInputStats();
+  });
+
+  pasteArea.addEventListener('input', convertFromPasteArea);
+
+  btnClear.addEventListener('click', function() {
+    pasteArea.innerHTML = '';
+    setOutput('');
+    updateInputStats();
+    pasteArea.focus();
+  });
+
+  btnCopy.addEventListener('click', async function() {
+    const text = outputEl.value;
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      outputEl.select();
+      document.execCommand('copy');
+    }
+    btnCopy.textContent = 'Copied';
+    setTimeout(function() { btnCopy.textContent = 'Copy'; }, 1500);
+  });
+
+  btnSelect.addEventListener('click', function() {
+    outputEl.focus();
+    outputEl.select();
+  });
+
+  function toggleTheme() {
+    var root = document.documentElement;
+    var isLight = root.classList.toggle('light');
+    document.getElementById('themeToggle').textContent = isLight ? '☀️' : '🌙';
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  }
+  document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+  if (localStorage.getItem('theme') !== 'dark') {
+    document.documentElement.classList.add('light');
+    document.getElementById('themeToggle').textContent = '☀️';
+  }
+})();
+</script>
+</body>
+</html>
