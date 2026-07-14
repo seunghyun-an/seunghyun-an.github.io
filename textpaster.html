@@ -40,7 +40,7 @@
   }
 
   .container {
-    max-width: 1200px;
+    max-width: 1500px;
     margin: 0 auto;
   }
 
@@ -61,11 +61,14 @@
 
   .layout {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 20px;
     align-items: start;
   }
-  @media (max-width: 900px) {
+  @media (max-width: 1100px) {
+    .layout { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 700px) {
     .layout { grid-template-columns: 1fr; }
   }
 
@@ -179,8 +182,8 @@
     <button type="button" id="themeToggle" style="padding:6px 12px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface2);color:var(--text);cursor:pointer;font-size:14px" title="Light/Dark mode">🌙</button>
   </div>
   <p class="subtitle">
-    Paste rich text (Word, Google Docs, web pages, Slack, etc.) and get Markdown.
-    <span class="tip">Paste into the left box (Ctrl/Cmd+V). HTML clipboard is converted to Markdown on the right.</span>
+    Paste rich text (Word, Google Docs, web pages, Slack, etc.) and get Markdown + plain text.
+    <span class="tip">Paste into the left box (Ctrl/Cmd+V). Outputs update together: Markdown and formatting-stripped plain text.</span>
   </p>
 
   <div class="layout">
@@ -203,12 +206,24 @@
     <div class="panel">
       <div class="panel-header">
         <span class="panel-title">Markdown</span>
-        <button type="button" class="btn btn-primary" id="btnCopy">Copy</button>
+        <button type="button" class="btn btn-primary" id="btnCopyMd">Copy</button>
       </div>
-      <textarea id="outputData" readonly placeholder="Markdown appears here after paste"></textarea>
-      <div class="stats" id="outputStats"></div>
+      <textarea id="outputMarkdown" readonly placeholder="Markdown appears here after paste"></textarea>
+      <div class="stats" id="mdStats"></div>
       <div class="actions">
-        <button type="button" class="btn" id="btnSelect">Select all</button>
+        <button type="button" class="btn" id="btnSelectMd">Select all</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <span class="panel-title">Plain text</span>
+        <button type="button" class="btn btn-primary" id="btnCopyPlain">Copy</button>
+      </div>
+      <textarea id="outputPlain" readonly placeholder="Plain text (no formatting) appears here after paste"></textarea>
+      <div class="stats" id="plainStats"></div>
+      <div class="actions">
+        <button type="button" class="btn" id="btnSelectPlain">Select all</button>
       </div>
     </div>
   </div>
@@ -217,12 +232,16 @@
 <script>
 (function() {
   const pasteArea = document.getElementById('pasteArea');
-  const outputEl = document.getElementById('outputData');
+  const outputMd = document.getElementById('outputMarkdown');
+  const outputPlain = document.getElementById('outputPlain');
   const inputStats = document.getElementById('inputStats');
-  const outputStats = document.getElementById('outputStats');
-  const btnCopy = document.getElementById('btnCopy');
+  const mdStats = document.getElementById('mdStats');
+  const plainStats = document.getElementById('plainStats');
   const btnClear = document.getElementById('btnClear');
-  const btnSelect = document.getElementById('btnSelect');
+  const btnCopyMd = document.getElementById('btnCopyMd');
+  const btnCopyPlain = document.getElementById('btnCopyPlain');
+  const btnSelectMd = document.getElementById('btnSelectMd');
+  const btnSelectPlain = document.getElementById('btnSelectPlain');
 
   function isBlock(tag) {
     return /^(P|DIV|H[1-6]|LI|UL|OL|BLOCKQUOTE|PRE|TABLE|THEAD|TBODY|TR|SECTION|ARTICLE|HEADER|FOOTER|MAIN|ASIDE|FIGURE|FIGCAPTION|HR|DL|DT|DD)$/.test(tag);
@@ -432,30 +451,162 @@
     return md.trim() + (md.trim() ? '\n' : '');
   }
 
-  function setOutput(md) {
-    outputEl.value = md;
-    const lines = md ? md.split(/\n/).length : 0;
-    const chars = md.length;
-    outputStats.textContent = md ? (lines + ' lines · ' + chars + ' chars') : '';
+  function formatStats(text) {
+    if (!text) return '';
+    return text.split(/\n/).length + ' lines · ' + text.length + ' chars';
+  }
+
+  function normalizePlain(text) {
+    return String(text || '')
+      .replace(/\u00a0/g, ' ')
+      .replace(/\r\n?/g, '\n')
+      .replace(/[ \t]+\n/g, '\n')
+      .replace(/\n[ \t]+/g, '\n')
+      .replace(/[ \t]{2,}/g, ' ')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim() + (String(text || '').trim() ? '\n' : '');
+  }
+
+  function plainFromNode(node, opts) {
+    opts = opts || {};
+    if (node.nodeType === Node.TEXT_NODE) {
+      return node.textContent.replace(/\u00a0/g, ' ');
+    }
+    if (node.nodeType !== Node.ELEMENT_NODE) return '';
+
+    const tag = node.tagName;
+    if (tag === 'STYLE' || tag === 'SCRIPT' || tag === 'META' || tag === 'LINK' || tag === 'TITLE' || tag === 'HEAD' || tag === 'NOSCRIPT') {
+      return '';
+    }
+    if (tag === 'BR') return '\n';
+    if (tag === 'HR') return '\n\n';
+    if (tag === 'IMG') {
+      const alt = (node.getAttribute('alt') || '').trim();
+      return alt ? alt : '';
+    }
+
+    if (tag === 'PRE') {
+      return '\n' + (node.textContent || '').replace(/\n$/, '') + '\n\n';
+    }
+
+    if (tag === 'TD' || tag === 'TH') {
+      const cell = Array.from(node.childNodes).map(function(c) {
+        return plainFromNode(c, { inline: true });
+      }).join('').replace(/\s+/g, ' ').trim();
+      return cell;
+    }
+
+    if (tag === 'TR') {
+      const cells = Array.from(node.children)
+        .filter(function(el) { return el.tagName === 'TD' || el.tagName === 'TH'; })
+        .map(function(el) { return plainFromNode(el, { inline: true }).trim(); });
+      return cells.join('\t') + '\n';
+    }
+
+    if (tag === 'TABLE') {
+      let out = '\n';
+      Array.from(node.querySelectorAll('tr')).forEach(function(tr) {
+        out += plainFromNode(tr, {});
+      });
+      return out + '\n';
+    }
+
+    if (tag === 'UL' || tag === 'OL') {
+      const ol = tag === 'OL';
+      let out = '';
+      let i = 0;
+      Array.from(node.children).forEach(function(li) {
+        if (li.tagName !== 'LI') return;
+        i += 1;
+        const marker = ol ? (i + '. ') : '- ';
+        const nested = [];
+        const parts = [];
+        Array.from(li.childNodes).forEach(function(child) {
+          if (child.nodeType === Node.ELEMENT_NODE && (child.tagName === 'UL' || child.tagName === 'OL')) {
+            nested.push(plainFromNode(child, {}));
+          } else {
+            parts.push(plainFromNode(child, { inline: true }));
+          }
+        });
+        out += marker + parts.join('').replace(/\s+/g, ' ').trim() + '\n';
+        nested.forEach(function(n) {
+          out += n.split('\n').map(function(line) {
+            return line ? '  ' + line : line;
+          }).join('\n');
+          if (!out.endsWith('\n')) out += '\n';
+        });
+      });
+      return out + '\n';
+    }
+
+    if (tag === 'A') {
+      const text = Array.from(node.childNodes).map(function(c) {
+        return plainFromNode(c, { inline: true });
+      }).join('').replace(/\s+/g, ' ').trim();
+      const href = (node.getAttribute('href') || '').trim();
+      if (href && text && href !== text && !href.startsWith('javascript:')) {
+        return text + ' (' + href + ')';
+      }
+      return text || href;
+    }
+
+    const inner = Array.from(node.childNodes).map(function(c) {
+      return plainFromNode(c, opts);
+    }).join('');
+
+    if (opts.inline) return inner;
+
+    if (/^H[1-6]$/.test(tag) || tag === 'P' || tag === 'DIV' || tag === 'BLOCKQUOTE' ||
+        tag === 'SECTION' || tag === 'ARTICLE' || tag === 'HEADER' || tag === 'FOOTER' ||
+        tag === 'FIGURE' || tag === 'FIGCAPTION' || tag === 'LI' || tag === 'DT' || tag === 'DD') {
+      const trimmed = inner.replace(/[ \t]+\n/g, '\n').replace(/^\n+|\n+$/g, '');
+      return trimmed ? trimmed + '\n\n' : '';
+    }
+
+    return inner;
+  }
+
+  function htmlToPlain(html) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(cleanClipboardHtml(html), 'text/html');
+    return normalizePlain(plainFromNode(doc.body || doc, {}));
+  }
+
+  function setOutputs(md, plain) {
+    outputMd.value = md || '';
+    outputPlain.value = plain || '';
+    mdStats.textContent = formatStats(outputMd.value);
+    plainStats.textContent = formatStats(outputPlain.value);
   }
 
   function updateInputStats() {
-    const text = pasteArea.innerText || '';
-    const trimmed = text.trim();
-    inputStats.textContent = trimmed
-      ? (trimmed.split(/\n/).length + ' lines · ' + trimmed.length + ' chars')
-      : '';
+    const text = (pasteArea.innerText || '').trim();
+    inputStats.textContent = text ? formatStats(text) : '';
   }
 
   function convertFromPasteArea() {
     const html = pasteArea.innerHTML;
     if (!html || html === '<br>') {
-      setOutput('');
+      setOutputs('', '');
       updateInputStats();
       return;
     }
-    setOutput(htmlToMarkdown(html));
+    setOutputs(htmlToMarkdown(html), htmlToPlain(html));
     updateInputStats();
+  }
+
+  async function copyText(el, btn) {
+    const text = el.value;
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      el.select();
+      document.execCommand('copy');
+    }
+    const prev = btn.textContent;
+    btn.textContent = 'Copied';
+    setTimeout(function() { btn.textContent = prev; }, 1500);
   }
 
   pasteArea.addEventListener('paste', function(e) {
@@ -468,10 +619,13 @@
       const parser = new DOMParser();
       const doc = parser.parseFromString(cleaned, 'text/html');
       pasteArea.innerHTML = doc.body ? doc.body.innerHTML : cleaned;
-      setOutput(htmlToMarkdown(cleaned));
+      // Prefer HTML→plain (consistent, strip formatting); fall back to clipboard plain.
+      const plainOut = htmlToPlain(cleaned) || normalizePlain(plain);
+      setOutputs(htmlToMarkdown(cleaned), plainOut);
     } else if (plain) {
       pasteArea.textContent = plain;
-      setOutput(plain.replace(/\r\n/g, '\n').trim() + '\n');
+      const normalized = normalizePlain(plain);
+      setOutputs(normalized, normalized);
     }
     updateInputStats();
   });
@@ -480,28 +634,15 @@
 
   btnClear.addEventListener('click', function() {
     pasteArea.innerHTML = '';
-    setOutput('');
+    setOutputs('', '');
     updateInputStats();
     pasteArea.focus();
   });
 
-  btnCopy.addEventListener('click', async function() {
-    const text = outputEl.value;
-    if (!text) return;
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (err) {
-      outputEl.select();
-      document.execCommand('copy');
-    }
-    btnCopy.textContent = 'Copied';
-    setTimeout(function() { btnCopy.textContent = 'Copy'; }, 1500);
-  });
-
-  btnSelect.addEventListener('click', function() {
-    outputEl.focus();
-    outputEl.select();
-  });
+  btnCopyMd.addEventListener('click', function() { copyText(outputMd, btnCopyMd); });
+  btnCopyPlain.addEventListener('click', function() { copyText(outputPlain, btnCopyPlain); });
+  btnSelectMd.addEventListener('click', function() { outputMd.focus(); outputMd.select(); });
+  btnSelectPlain.addEventListener('click', function() { outputPlain.focus(); outputPlain.select(); });
 
   function toggleTheme() {
     var root = document.documentElement;
