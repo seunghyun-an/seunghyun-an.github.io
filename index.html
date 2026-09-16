@@ -56,8 +56,9 @@
             </div>
             <p class="authors"><strong>Seunghyun An</strong>, Joontaek Oh, Ming Liu</p>
             <ul>
-                <li>Designed cSwitch, a Linux scheduling framework that uses a software-switch abstraction to model traffic through the I/O chiplet</li>
-                <li>Mitigated I/O-chiplet contention through traffic-aware thread scheduling</li>
+                <li>Found that Linux’s conventional scheduling signals—CPU load and static topology/locality—break down on chiplet CPUs: under shared I/O-chiplet congestion, topologically local placement can run 4.3–4.5× slower than remote placement</li>
+                <li>Isolated this “I/O Chiplet Wall” from memory-controller saturation, showing that the slowdown originates from contention along the compute-to-I/O-chiplet path itself</li>
+                <li>Built cSwitch, which uses commodity performance counters to infer each thread’s communication path and bandwidth demand, then schedules based on runtime path congestion rather than static topology</li>
             </ul>
         </div>
         
