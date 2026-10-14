@@ -12,11 +12,13 @@
             <h1>Seunghyun An</h1>
             <p class="header-links">
                 <a href="cv.pdf">CV</a> ·
+                <a href="https://scholar.google.com/citations?user=h_SSMiMAAAAJ&amp;hl=en">Google Scholar</a> ·
+                <a href="https://github.com/seunghyun-an">GitHub</a> ·
                 <a href="https://www.linkedin.com/in/seunghyun-an-98a812233/">LinkedIn</a>
             </p>
             <p>
-                Hi, I'm Seunghyun. I am a PhD candidate at the University of Wisconsin-Madison, 
-                where I focus on operating systems and host networking.
+                Hi, I'm Seunghyun. I am a PhD candidate at the University of Wisconsin–Madison, 
+                where I focus on operating systems, chiplet-based server systems, and performance engineering.
                 Currently I am advised by Professor <a href="https://pages.cs.wisc.edu/~mgliu/">Ming Liu</a>.
                 At KAIST, I worked with Professor <a href="https://sites.google.com/view/yjkwon/home?authuser=0">Youngjin Kwon</a> on Rust OS and SmartSSDs. 
                 At EPFL, I worked with Professor <a href="https://sanidhya.github.io/">Sanidhya Kashyap</a> on Rust filesystems. 
@@ -49,8 +51,10 @@
             <div class="entry-header">
                 <h3>
                     cSwitch: Scheduling Linux Threads under the I/O Chiplet Wall
-                    <a href="sosp26-final821.pdf"
-                       aria-label="Download cSwitch SOSP 2026 paper as a PDF">[PDF]</a>
+                    <a href="https://dl.acm.org/doi/pdf/10.1145/3830418.3843889"
+                       aria-label="cSwitch paper (ACM DOI)">[Paper]</a>
+                    <a href="https://github.com/netlab-wisconsin/cSwitch"
+                       aria-label="cSwitch source code on GitHub">[Code]</a>
                 </h3>
                 <span class="location">SOSP 2026</span>
             </div>
@@ -66,15 +70,15 @@
             <div class="entry-header">
                 <h3>
                     Server Chiplet Networking
-                    <a href="https://conferences.sigcomm.org/hotnets/2025/papers/hotnets25-final85.pdf"
-                       aria-label="Download Server Chiplet Networking as a PDF">[PDF]</a>
+                    <a href="https://dl.acm.org/doi/pdf/10.1145/3772356.3772389"
+                       aria-label="Server Chiplet Networking paper (ACM DOI)">[Paper]</a>
                 </h3>
                 <span class="location">HotNets 2025</span>
             </div>
             <p class="authors"><strong>Seunghyun An</strong>, Joontaek Oh, Ming Liu</p>
             <ul>
-                <li>Characterized the chiplet network of two generations of AMD EPYC CPUs</li>
-                <li>Proposed future directions with chiplet networking</li>
+                <li>Characterized communication across compute/I/O chiplets, memory, and devices on two AMD EPYC generations</li>
+                <li>Identified topology-dependent latency and bandwidth domains, inconsistent bandwidth-delay products, and sender-driven sharing</li>
             </ul>
         </div>
     </section>
@@ -84,7 +88,7 @@
         
         <div class="entry">
             <div class="entry-header">
-                <h3>University of Wisconsin - Madison</h3>
+                <h3>University of Wisconsin–Madison</h3>
                 <span class="location">Madison, WI, USA</span>
             </div>
             <div class="entry-sub">
@@ -103,7 +107,7 @@
                 <span class="location">Daejeon, South Korea</span>
             </div>
             <div class="entry-sub">
-                <span class="degree">B.S. Double Major in Computer Science and Electrical Engineering</span>
+                <span class="degree">B.S. in Computer Science and Electrical Engineering (Double Major)</span>
                 <span class="date">Mar. 2018 – Aug. 2024</span>
             </div>
             <ul>
@@ -130,35 +134,24 @@
 
         <div class="entry">
             <div class="entry-header">
-                <h3>Understanding the Chiplet Network</h3>
-                <span class="location">NetLab, UW-Madison</span>
+                <h3>Operating Systems for Chiplet Servers</h3>
+                <span class="location">NetLab, UW–Madison</span>
             </div>
             <div class="entry-sub">
                 <span class="advisor">Advised by Prof. Ming Liu</span>
                 <span class="date">Aug. 2024 – Present</span>
             </div>
             <ul>
-                <li>Currently examining how chiplet system would affect on end-to-end performance.</li>
+                <li>Designed controlled memory/CXL experiments and hardware-counter analysis to isolate compute–I/O chiplet contention from downstream memory-controller saturation on AMD EPYC systems</li>
+                <li>Implemented cSwitch’s Linux sched_ext/eBPF path and PMU-based per-thread load attribution</li>
+                <li>Developed bandwidth-aware thread migration and CPU-time throttling policies</li>
+                <li>Investigating selective message passing for coherence-heavy inter-chiplet coordination in microkernel and multikernel designs</li>
             </ul>
         </div>
 
         <div class="entry">
             <div class="entry-header">
-                <h3>Porting mv-rlu in Rust</h3>
-                <span class="location">RS3Lab, EPFL</span>
-            </div>
-            <div class="entry-sub">
-                <span class="advisor">Advised by Prof. Sanidhya Kashyap</span>
-                <span class="date">Jul. 2023 – Feb. 2024</span>
-            </div>
-            <ul>
-                <li>Ported MV-RLU, synchronization primitive, in Rust.</li>
-            </ul>
-        </div>
-
-        <div class="entry">
-            <div class="entry-header">
-                <h3>File System with SmartSSD</h3>
+                <h3>Kernel-Level RPC for SmartSSD</h3>
                 <span class="location">CASYS, KAIST</span>
             </div>
             <div class="entry-sub">
@@ -166,28 +159,29 @@
                 <span class="date">Jul. 2023 – Feb. 2024</span>
             </div>
             <ul>
-                <li>Examined previous filesystem works which can be compared to.</li>
-                <li>Built kernel RPC Module.</li>
+                <li>Ported a user-space RDMA RPC library into a Linux kernel module for SmartSSD services</li>
+                <li>Adapted memory management and synchronization to kernel constraints</li>
             </ul>
         </div>
 
         <div class="entry">
             <div class="entry-header">
-                <h3>Implementing Safe File System in Rust</h3>
+                <h3>Concurrent Systems and File Systems in Rust</h3>
                 <span class="location">RS3Lab, EPFL</span>
             </div>
             <div class="entry-sub">
                 <span class="advisor">Advised by Prof. Sanidhya Kashyap</span>
-                <span class="date">Jan. 2023 – Jul. 2023</span>
+                <span class="date">Jan. 2023 – Feb. 2024</span>
             </div>
             <ul>
-                <li>Ported the user level file system written in C into Rust.</li>
+                <li>MV-RLU: Ported the protocol to Rust, preserving multi-version synchronization while confining raw-pointer operations to a small unsafe core</li>
+                <li>ArckFS (<a href="https://doi.org/10.1145/3600006.3613171">Trio, SOSP ’23</a>): Ported core paths from C to Rust and built an mmap-backed mock kernel interface</li>
             </ul>
         </div>
 
         <div class="entry">
             <div class="entry-header">
-                <h3>Coffer: A Universal Abstraction for Security and Fault Isolation with Rust</h3>
+                <h3>CofferOS Physical Memory Management</h3>
                 <span class="location">CASYS, KAIST</span>
             </div>
             <div class="entry-sub">
@@ -195,7 +189,8 @@
                 <span class="date">Jul. 2022 – Dec. 2022</span>
             </div>
             <ul>
-                <li>Optimized physical memory allocation/deallocation performance.</li>
+                <li>In CofferOS (later published at <a href="https://doi.org/10.1145/3767295.3803569">EuroSys ’26</a>), traced deallocation overhead to page zeroing and buddy coalescing</li>
+                <li>Implemented a deferred-free queue and background kernel task to move page reclamation off the deallocation path</li>
             </ul>
         </div>
     </section> -->
@@ -205,23 +200,23 @@
 
         <div class="entry">
             <div class="entry-header">
-                <h3>Teaching Assistance at UW-Madison</h3>
+                <h3>Teaching Assistant at UW–Madison</h3>
             </div>
             <ul>
-                <li>CS354 Machine Organization and Programming (Spring 2026)</li>
-                <li>CS537 Introduction to Operating System (Fall 2024, Spring/Fall 2025)</li>
+                <li>CS 354: Machine Organization and Programming (Spring/Fall 2026; Head TA)</li>
+                <li>CS 537: Introduction to Operating Systems (Fall 2024; Spring/Fall 2025)</li>
             </ul>
         </div>
 
         <div class="entry">
             <div class="entry-header">
-                <h3>Teaching Experience at KAIST</h3>
+                <h3>At KAIST</h3>
             </div>
             <ul>
                 <li>Humanity/Leadership III: Hacking Class (Fall 2023)</li>
-                <li>Python Tutoring at Daeduk High School (2022)</li>
-                <li>Freshman Tutoring: Introduction to Programming (Spring 2022)</li>
-                <li>Freshman Tutoring: General Physics II (Fall 2021)</li>
+                <li>Python Tutor, Daeduk High School (2022)</li>
+                <li>Freshman Tutor: Introduction to Programming (Spring 2022)</li>
+                <li>Freshman Tutor: General Physics II (Fall 2021)</li>
             </ul>
         </div>
     </section>
@@ -229,22 +224,22 @@
     <section id="honors">
         <h2>Honors</h2>
         <ul>
-            <li>Dean’s List in School of Engineering, Spring 2021</li>
             <li>Presidential Science Scholarship, 2018 – 2024</li>
-            <li>1st Overall & Gold Medal, Group Beta (Senior Group), 22nd International Astronomy Olympiad, 2017</li>
+            <li>Dean’s List, School of Engineering, Spring 2021</li>
+            <li>Gold Medal and First Overall, 22nd International Astronomy Olympiad, Group Beta (senior division), 2017</li>
         </ul>
     </section>
 
     <section id="skills">
         <h2>Technical Skills</h2>
         <div class="entry">
-            <strong>Programming Languages:</strong> C/C++, Rust, Python
+            <strong>Programming Languages:</strong> C, C++, Rust, Python
         </div>
         <div class="entry">
-            <strong>Languages:</strong> Korean (Native), English (Proficient)
+            <strong>Spoken Languages:</strong> Korean (native), English (proficient)
         </div>
         <div class="entry">
-            <strong>Algorithmic problem solving:</strong>
+            <strong>Algorithmic Problem Solving:</strong>
             <a href="https://leetcode.com/u/drash99/">LeetCode Guardian</a>
             (2100+ contest rating)
         </div>
@@ -259,11 +254,11 @@
                 <span class="location">Pyeongtaek, South Korea</span>
             </div>
             <div class="entry-sub">
-                <span class="role">Served as KATUSA in Eighth Army Public Affairs</span>
+                <span class="role">KATUSA, Eighth Army Public Affairs</span>
                 <span class="date">2019 – 2020</span>
             </div>
             <ul>
-                <li>Awarded Army Commendation Medal(ARCOM) from the U.S. Army</li>
+                <li>Received the U.S. Army Commendation Medal</li>
             </ul>
         </div>
     </section>
@@ -297,19 +292,19 @@
             </div>
             <ul>
                 <li>Implemented stable, rate-controlled BLE communication for HealthyPi 5</li>
-                <li>Added multiple sensor-data streaming over BLE</li>
+                <li>Added multi-sensor data streaming over BLE</li>
             </ul>
         </div>
     </section>
 
     <footer>
         <hr>
-        <h2>Tools (Built for my own use)</h2>
+        <h2>Tools (built for my own use)</h2>
         <ul class="tools-list">
             <li><a href="graph.html">Graph Explorer</a> — Interactive CSV/TSV graph drawing tool</li>
-            <li><a href="tableconverter.html">Table Converter</a> — Convert between TSV, CSV, and Gnuplot data formats</li>
+            <li><a href="tableconverter.html">Table Converter</a> — Convert between TSV, CSV, Markdown, LaTeX, and Gnuplot formats</li>
             <li><a href="imagepreview.html">Image Preview</a> — Grayscale preview for print (check color distinction)</li>
-            <li><a href="textpaster.html">Text Paster</a> — Paste rich text and convert to Markdown</li>
+            <li><a href="textpaster.html">Text Paster</a> — Convert pasted rich text to Markdown and plain text</li>
         </ul>
     </footer>
 </body>
