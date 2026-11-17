@@ -129,7 +129,7 @@
     </section>
 
 
-    <!-- <section id="research">
+    <section id="research">
         <h2>Research Experience</h2>
 
         <div class="entry">
@@ -142,10 +142,17 @@
                 <span class="date">Aug. 2024 – Present</span>
             </div>
             <ul>
-                <li>Designed controlled memory/CXL experiments and hardware-counter analysis to isolate compute–I/O chiplet contention from downstream memory-controller saturation on AMD EPYC systems</li>
-                <li>Implemented cSwitch’s Linux sched_ext/eBPF path and PMU-based per-thread load attribution</li>
-                <li>Developed bandwidth-aware thread migration and CPU-time throttling policies</li>
-                <li>Investigating selective message passing for coherence-heavy inter-chiplet coordination in microkernel and multikernel designs</li>
+                <li>Characterized communication across compute/I/O chiplets, memory, and devices on two AMD EPYC generations, identifying topology-dependent latency and bandwidth domains (HotNets ’25)</li>
+                <li>Showed that Linux’s locality-based scheduling breaks down under I/O-chiplet contention, and built cSwitch to schedule on runtime path congestion instead of static topology (SOSP ’26)</li>
+                <li>Now generalizing from scheduling to OS state as a whole: asking whether OSes need a per-chiplet abstraction for state ownership and coordination scope, and when multikernel-style ownership with explicit protocols serves it better than a shared kernel
+                    <ul>
+                        <li>Specifying Linux’s anonymous page-fault path in Rocq and modeling its cost from measured within- and cross-CCD cache-line transfer prices</li>
+                        <li>Along the way, found a Linux mm page-fault regression; the maintainer’s fix credits me with Reported-by and Tested-by and is under review as a 7.4 hotfix
+                            <a href="https://lore.kernel.org/linux-mm/20261110000002.1834454-1-san55@wisc.edu/">[Report]</a>
+                            <a href="https://lore.kernel.org/linux-mm/lwcxgxweftxmm42ujpctfaq2mxwviv33e4ml54ln56ssvlgrfv@hnm3jhsypjih/T/">[Fix]</a>
+                        </li>
+                    </ul>
+                </li>
             </ul>
         </div>
 
@@ -193,7 +200,7 @@
                 <li>Implemented a deferred-free queue and background kernel task to move page reclamation off the deallocation path</li>
             </ul>
         </div>
-    </section> -->
+    </section>
 
     <section id="teaching">
         <h2>Teaching Experience</h2>
@@ -245,19 +252,20 @@
         </div>
     </section>
 
-    <section id="professional">
-        <h2>Professional Experience</h2>
+    <section id="military">
+        <h2>Military Service</h2>
         
         <div class="entry">
             <div class="entry-header">
-                <h3>Military Service</h3>
+                <h3>KATUSA (Korean Augmentation to the U.S. Army)</h3>
                 <span class="location">Pyeongtaek, South Korea</span>
             </div>
             <div class="entry-sub">
-                <span class="role">KATUSA, Eighth Army Public Affairs</span>
+                <span class="role">Mandatory service, Eighth Army Public Affairs</span>
                 <span class="date">2019 – 2020</span>
             </div>
             <ul>
+                <li>Served during a military leave of absence from KAIST</li>
                 <li>Received the U.S. Army Commendation Medal</li>
             </ul>
         </div>
@@ -293,6 +301,22 @@
             <ul>
                 <li>Implemented stable, rate-controlled BLE communication for HealthyPi 5</li>
                 <li>Added multi-sensor data streaming over BLE</li>
+            </ul>
+        </div>
+        <div class="entry">
+            <div class="entry-header">
+                <h3>LLM-Assisted Bug Fixes</h3>
+                <span class="location">Hobby</span>
+            </div>
+            <ul>
+                <li>Fixing bugs I run into in everyday desktop software with LLM agents</li>
+                <li>Firefox: fixed a DMABUF texture ownership bug on Wayland; landed in Firefox 156
+                    <a href="https://bugzilla.mozilla.org/show_bug.cgi?id=2063033">[Bug]</a>
+                </li>
+                <li>GNOME LocalSearch: fixes for extractor retries after D-Bus disconnects and for configured roots dropping out of the index (in review)
+                    <a href="https://gitlab.gnome.org/GNOME/localsearch/-/work_items/474">[#474]</a>
+                    <a href="https://gitlab.gnome.org/GNOME/localsearch/-/work_items/475">[#475]</a>
+                </li>
             </ul>
         </div>
     </section>
